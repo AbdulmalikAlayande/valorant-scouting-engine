@@ -1,0 +1,73 @@
+grid-analysis/
+│
+├── venv/
+├── requirements.txt
+│
+├── config/
+│   └── settings.py        # API keys, URLs
+│
+├── clients/
+│   ├── grid/
+│   │   ├── graphql_client.py   # low-level HTTP + auth
+│   │   └── exceptions.py
+│   │
+│   ├── domains/
+│   │   ├── teams.py            # uses Query API internally
+│   │   ├── players.py
+│   │   ├── series.py
+│   │   ├── stats.py            # uses Stats Feed internally
+│   │
+│   └── __init__.py
+│
+├── ingestion/
+│   ├── fetch_series.py
+│   ├── fetch_team_stats.py
+│
+├── transforms/
+│   ├── team_tendencies.py
+│   ├── player_tendencies.py
+│
+├── models/
+│   ├── team.py
+│   ├── match.py
+│   └── report.py
+│
+└── tests/
+│   └── test_transforms.py
+│
+├── storage/
+│   ├── db.py              # Postgres connection
+│   └── upsert.py
+│
+├── migrations/
+│   └── 001_initial_schema.sql
+│
+├── jobs/
+│   ├── generate_report.py # one entrypoint
+│
+└── README.md
+└── Pipfile
+└── Pipfile.lock
+└── .env
+└── .gitignore
+
+
+Coach enters "Team Liquid"
+    ↓
+Java API receives request
+    ↓
+Java inserts row: report_requests(team="Liquid", status="PENDING")
+    ↓
+Python worker polls database every 10 seconds
+    ↓
+Sees PENDING request
+    ↓
+Fetches GRID data
+    ↓
+Runs pandas aggregations
+    ↓
+Writes results to team_tendencies table
+    ↓
+Updates report_requests(status="COMPLETED")
+    ↓
+Java serves results to frontend
