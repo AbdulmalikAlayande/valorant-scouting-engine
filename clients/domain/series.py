@@ -185,9 +185,9 @@ if __name__ == "__main__":
     print("-" * 50)
 
     print("\n📊 TEST 1: Getting recent VALORANT series...")
-    # s = get_recent_series()
-    # print(s)
-    # print("\n" + "-" * 50)
+    s = get_recent_series()
+    print(s)
+    print("\n" + "-" * 50)
     s1 = get_series_by_id()
     print(s1)
 
