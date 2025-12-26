@@ -5,3 +5,8 @@
 Pipfile.lock
 __pycache__/
 *.pyc
+
+clients/response
+clients/response/**
+clients/errors
+clients/errors/**
