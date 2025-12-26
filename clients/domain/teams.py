@@ -1,5 +1,4 @@
 import json
-
 from clients.grid.graphqlclient import GraphQLClient
 from config.settings import GRID_QUERY_API_URL, GRID_API_KEY, PROJECT_ROOT
 

@@ -1,6 +1,5 @@
 # Series State API
 import json
-
 from clients.grid.graphqlclient import GraphQLClient
 from config.settings import GRID_QUERY_API_URL, GRID_API_KEY, PROJECT_ROOT
 
@@ -14,6 +13,7 @@ def get_recent_series():
             allSeries (
                 first: $first
                 filter: {
+                    types: [ESPORTS]  
                     titleIds: {
                         in: ["6"]
                     }
@@ -189,6 +189,7 @@ def get_team_recent_series(team_id: str):
                     teamIds: {
                         in: [$teamId]
                     }
+                    types: [ESPORTS] 
                     titleIds: {
                         in: ["6"]
                     }
