@@ -1,0 +1,15 @@
+[
+    {
+        "message": "Invalid syntax with offending token '{' at line 5 column 26",
+        "locations": [
+            {
+                "line": 5,
+                "column": 26
+            }
+        ],
+        "extensions": {
+            "classification": "InvalidSyntax",
+            "errorType": "BAD_REQUEST"
+        }
+    }
+]

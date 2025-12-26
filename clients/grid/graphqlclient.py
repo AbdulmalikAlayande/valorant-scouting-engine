@@ -1,10 +1,7 @@
 import json
 import requests
-from pathlib import Path
 from clients.grid.exceptions import (GridError, GridAuthError, GridGraphQLError, GridRateLimitError)
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from config.settings import PROJECT_ROOT
 
 
 class GraphQLClient:
@@ -45,7 +42,7 @@ class GraphQLClient:
         if "errors" in result:
             errors = result["errors"]
             print(errors)
-            error_file = PROJECT_ROOT / "errors" / "graphql-errors.json"
+            error_file = PROJECT_ROOT / "clients" / "errors" / "graphql-errors.json"
             error_file.parent.mkdir(parents=True, exist_ok=True)
             with open(error_file, "w") as f:
                 json.dump(errors, f, indent=4)
