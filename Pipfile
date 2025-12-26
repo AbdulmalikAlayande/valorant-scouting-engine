@@ -9,6 +9,7 @@ psycopg2-binary = "*"
 requests = "*"
 dj-database-url = "*"
 environs = "*"
+pydantic = "*"
 
 [dev-packages]
 
