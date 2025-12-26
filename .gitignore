@@ -12,3 +12,4 @@ clients/response/**
 clients/errors
 clients/errors/**
 agent-reference
+agent-reference/**
