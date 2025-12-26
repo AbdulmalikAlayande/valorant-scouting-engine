@@ -4,9 +4,11 @@
 .venv/**
 Pipfile.lock
 __pycache__/
+**/__pycache__/
 *.pyc
 
 clients/response
 clients/response/**
 clients/errors
 clients/errors/**
+agent-reference
