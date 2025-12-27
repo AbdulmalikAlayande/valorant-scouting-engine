@@ -1,0 +1,219 @@
+fragment StatBlock on AggregateIntStatistic {
+    sum
+    min
+    max
+    avg
+    ratePerMinute {
+        min
+        max
+        avg
+    }
+}
+
+fragment WinBlock on BooleanOccurrenceStatistic {
+    value
+    count
+    percentage
+    streak {
+        min
+        max
+        current
+    }
+}
+
+fragment ObjectiveStats on ObjectiveStatistics {
+    type
+    completionCount {
+        ...StatBlock
+    }
+    completedFirst {
+        ...WinBlock
+    }
+}
+
+fragment BaseStats on TeamSeriesStatistics {
+    count
+    won {
+        ...WinBlock
+    }
+    kills {
+        ...StatBlock
+    }
+    killAssistsGiven {
+        ...StatBlock
+    }
+    killAssistsReceived {
+        ...StatBlock
+    }
+    teamkills {
+        ...StatBlock
+    }
+    teamkillAssistsGiven {
+        ...StatBlock
+    }
+    teamkillAssistsReceived {
+        ...StatBlock
+    }
+    selfkills {
+        ...StatBlock
+    }
+    deaths {
+        ...StatBlock
+    }
+    structuresDestroyed {
+        ...StatBlock
+    }
+    structuresCaptured {
+        ...StatBlock
+    }
+    score {
+        ...StatBlock
+    }
+    objectives {
+        ...ObjectiveStats
+    }
+    firstKill {
+        ...WinBlock
+    }
+}
+
+query GetTeamStatistics($teamId: ID!, $filter: TeamStatisticsFilter!) {
+    teamStatistics(teamId: $teamId, filter: $filter) {
+        id
+        aggregationSeriesIds
+        series {
+            ...BaseStats
+        }
+        game {
+            __typename
+            ... on TeamGameStatisticsVal {
+                damageDealt {
+                    ...StatBlock
+                }
+                damageTaken {
+                    ...StatBlock
+                }
+            }
+            count
+            money {
+                ...StatBlock
+            }
+            inventoryValue {
+                ...StatBlock
+            }
+            netWorth {
+                ...StatBlock
+            }
+            won {
+                ...WinBlock
+            }
+            kills {
+                ...StatBlock
+            }
+            killAssistsGiven {
+                ...StatBlock
+            }
+            killAssistsReceived {
+                ...StatBlock
+            }
+            teamkills {
+                ...StatBlock
+            }
+            teamkillAssistsGiven {
+                ...StatBlock
+            }
+            teamkillAssistsReceived {
+                ...StatBlock
+            }
+            selfkills {
+                ...StatBlock
+            }
+            deaths {
+                ...StatBlock
+            }
+            structuresDestroyed {
+                ...StatBlock
+            }
+            structuresCaptured {
+                ...StatBlock
+            }
+            score {
+                ...StatBlock
+            }
+            objectives {
+                ...ObjectiveStats
+            }
+            firstKill {
+                ...WinBlock
+            }
+            unitKills {
+                unitName
+                count {
+                    ...StatBlock
+                }
+            }
+            players {
+                characters {
+                    count
+                    percentage
+                    character {
+                        id
+                        name
+                    }
+                }
+            }
+            duration {
+                sum
+                min
+                max
+                avg
+            }
+        }
+        segment {
+            type
+            count
+            won {
+                ...WinBlock
+            }
+            kills {
+                ...StatBlock
+            }
+            killAssistsGiven {
+                ...StatBlock
+            }
+            killAssistsReceived {
+                ...StatBlock
+            }
+            teamkills {
+                ...StatBlock
+            }
+            teamkillAssistsGiven {
+                ...StatBlock
+            }
+            teamkillAssistsReceived {
+                ...StatBlock
+            }
+            selfkills {
+                ...StatBlock
+            }
+            deaths {
+                ...StatBlock
+            }
+            structuresDestroyed {
+                ...StatBlock
+            }
+            structuresCaptured {
+                ...StatBlock
+            }
+            objectives {
+                ...ObjectiveStats
+            }
+            firstKill {
+                ...WinBlock
+            }
+            wonFirst {
+                ...WinBlock
+            }
+        }
+    }
+}

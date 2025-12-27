@@ -1,0 +1,120 @@
+fragment StatBlock on AggregateIntStatistic {
+    sum
+    min
+    max
+    avg
+    ratePerMinute {
+        min
+        max
+        avg
+    }
+}
+
+fragment WinBlock on BooleanOccurrenceStatistic {
+    value
+    count
+    percentage
+    streak {
+        min
+        max
+        current
+    }
+}
+
+fragment ObjectiveStats on ObjectiveStatistics {
+    type
+    completionCount {
+        ...StatBlock
+    }
+    completedFirst {
+        ...WinBlock
+    }
+}
+
+query GetTeamGameStatistics($teamId: ID!, $selection: GameSelection) {
+    teamGameStatistics(teamId: $teamId, selection: $selection) {
+        __typename
+        ... on TeamGameStatisticsVal {
+            damageDealt {
+                ...StatBlock
+            }
+            damageTaken {
+                ...StatBlock
+            }
+        }
+        count
+        money {
+            ...StatBlock
+        }
+        inventoryValue {
+            ...StatBlock
+        }
+        netWorth {
+            ...StatBlock
+        }
+        won {
+            ...WinBlock
+        }
+        kills {
+            ...StatBlock
+        }
+        killAssistsGiven {
+            ...StatBlock
+        }
+        killAssistsReceived {
+            ...StatBlock
+        }
+        teamkills {
+            ...StatBlock
+        }
+        teamkillAssistsGiven {
+            ...StatBlock
+        }
+        teamkillAssistsReceived {
+            ...StatBlock
+        }
+        selfkills {
+            ...StatBlock
+        }
+        deaths {
+            ...StatBlock
+        }
+        structuresDestroyed {
+            ...StatBlock
+        }
+        structuresCaptured {
+            ...StatBlock
+        }
+        score {
+            ...StatBlock
+        }
+        objectives {
+            ...ObjectiveStats
+        }
+        firstKill {
+            ...WinBlock
+        }
+        unitKills {
+            unitName
+            count {
+                ...StatBlock
+            }
+        }
+        players {
+            characters {
+                count
+                percentage
+                character {
+                    id
+                    name
+                }
+            }
+        }
+        duration {
+            sum
+            min
+            max
+            avg
+        }
+    }
+}
