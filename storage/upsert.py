@@ -2,7 +2,6 @@
 from storage.db import get_db_cursor
 from psycopg2.extras import Json
 from typing import Dict, Any
-from datetime import datetime
 
 
 def upsert_team(team_id: str, team_name: str, **extra_fields):
@@ -78,11 +77,13 @@ def upsert_match(match_data: Dict[str, Any]):
     with get_db_cursor() as cursor:
         cursor.execute(
             """
-                INSERT INTO matches (series_id, team_id, team_name,
-                                    opponent_id, opponent_name,
+                INSERT INTO matches (series_id, team_id, team_fk_id, team_name,
+                                    opponent_id, opponent_fk_id, opponent_name,
                                     map_name, won, kills, deaths, assists, played_at)
-                VALUES (%(series_id)s, %(team_id)s, %(team_name)s,
-                       %(opponent_id)s, %(opponent_name)s,
+                VALUES (%(series_id)s, %(team_id)s, 
+                        get_or_create_team_fk(%(team_id)s, %(team_name)s), 
+                        %(team_name)s, %(opponent_id)s,
+                        get_or_create_team_fk(%(opponent_id)s, %(opponent_name)s),
                        %(map_name)s, %(won)s, %(kills)s, %(deaths)s, %(assists)s, %(played_at)s)
                 ON CONFLICT (series_id)
                     DO UPDATE SET team_name    = EXCLUDED.team_name,
@@ -240,7 +241,7 @@ if __name__ == "__main__":
     team_id = upsert_team("53625", "Team Liquid", logo_url="https://example.com/logo.png")
     print(f"✅ Team inserted/updated with ID: {team_id}")
 
-    # Test 2: Create report request
+    # Test 2: Create a report request
     print("\n2. Testing create_report_request...")
     request_id = create_report_request("53625", "Team Liquid")
     print(f"✅ Report request created with ID: {request_id}")

@@ -152,8 +152,20 @@ def get_game_stats(game_title_id: str, filter_: dict):
 def get_series_stats(series_id: str):
     pass
 
-def player_stats(player_id: str):
-    pass
+def player_stats(player_id: str, filter_: dict):
+    """
+    Fetches player statistics based on the provided player ID and filter.
+    """
+    query = load_graphql_query("playerstats")
+    variables = {"playerId": player_id, "filter": filter_}
+
+    client = GraphQLClient(base_url=GRID_STATS_API_URL, api_key=GRID_API_KEY)
+    data = client.execute(query=query, variables=variables)
+    response_file = PROJECT_ROOT / "clients" / "response" / "player-stats.json"
+    response_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(response_file, "w") as f:
+        json.dump(data, f, indent=4)
+    return data
 
 
 if __name__ == '__main__':

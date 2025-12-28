@@ -1,0 +1,43 @@
+query GetPlayerStatistics($playerId: ID!, $filter: PlayerStatisticsFilter!) {
+    playerStatistics(playerId: $playerId, filter: $filter) {
+        id
+        series {
+            count
+            won {
+                count
+                percentage
+            }
+            kills {
+                sum
+                avg
+            }
+            deaths {
+                sum
+                avg
+            }
+        }
+        game {
+            count
+            won {
+                count
+                percentage
+            }
+            kills {
+                sum
+                avg
+            }
+            deaths {
+                sum
+                avg
+            }
+            characters {
+                count
+                percentage
+                character {
+                    id
+                    name
+                }
+            }
+        }
+    }
+}

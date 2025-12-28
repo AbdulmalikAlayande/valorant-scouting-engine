@@ -7,6 +7,5 @@ def get_player_by_name():
 
 def get_player_by_external_id():
     """
-    Id of externa
     """
     pass
