@@ -1,6 +1,6 @@
 [
     {
-        "message": "Validation error (NonExecutableDefinition) : Type 'RateStatistic' definition is not executable",
+        "message": "Validation error (UnusedFragment) : Unused fragment 'StatBlock'",
         "locations": [
             {
                 "line": 1,
@@ -15,10 +15,10 @@
         }
     },
     {
-        "message": "Validation error (NonExecutableDefinition) : Type 'AggregateIntStatistic' definition is not executable",
+        "message": "Validation error (UnusedFragment) : Unused fragment 'WinBlock'",
         "locations": [
             {
-                "line": 6,
+                "line": 13,
                 "column": 1
             }
         ],
@@ -30,10 +30,10 @@
         }
     },
     {
-        "message": "Validation error (NonExecutableDefinition) : Type 'OccurrenceStreakStatistic' definition is not executable",
+        "message": "Validation error (UnusedFragment) : Unused fragment 'ObjectiveStats'",
         "locations": [
             {
-                "line": 14,
+                "line": 24,
                 "column": 1
             }
         ],
@@ -45,55 +45,10 @@
         }
     },
     {
-        "message": "Validation error (NonExecutableDefinition) : Type 'BooleanOccurrenceStatistic' definition is not executable",
+        "message": "Validation error (UnusedFragment) : Unused fragment 'BaseStats'",
         "locations": [
             {
-                "line": 20,
-                "column": 1
-            }
-        ],
-        "path": [],
-        "extensions": {
-            "classification": "ValidationError",
-            "errorType": "BAD_REQUEST",
-            "errorDetail": "INVALID_ARGUMENT"
-        }
-    },
-    {
-        "message": "Validation error (NonExecutableDefinition) : Type 'ObjectiveStatistics' definition is not executable",
-        "locations": [
-            {
-                "line": 27,
-                "column": 1
-            }
-        ],
-        "path": [],
-        "extensions": {
-            "classification": "ValidationError",
-            "errorType": "BAD_REQUEST",
-            "errorDetail": "INVALID_ARGUMENT"
-        }
-    },
-    {
-        "message": "Validation error (NonExecutableDefinition) : Type 'DurationStatistic' definition is not executable",
-        "locations": [
-            {
-                "line": 33,
-                "column": 1
-            }
-        ],
-        "path": [],
-        "extensions": {
-            "classification": "ValidationError",
-            "errorType": "BAD_REQUEST",
-            "errorDetail": "INVALID_ARGUMENT"
-        }
-    },
-    {
-        "message": "Validation error (NonExecutableDefinition) : Type 'TeamSeriesStatistics' definition is not executable",
-        "locations": [
-            {
-                "line": 40,
+                "line": 34,
                 "column": 1
             }
         ],

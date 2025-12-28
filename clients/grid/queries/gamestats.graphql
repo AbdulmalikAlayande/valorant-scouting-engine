@@ -1,0 +1,136 @@
+fragment StatBlock on AggregateIntStatistic {
+    sum
+    min
+    max
+    avg
+    ratePerMinute {
+        min
+        max
+        avg
+    }
+}
+
+fragment WinBlock on BooleanOccurrenceStatistic {
+    value
+    count
+    percentage
+    streak {
+        min
+        max
+        current
+    }
+}
+
+fragment ObjectiveStats on ObjectiveStatistics {
+    type
+    completionCount {
+        ...StatBlock
+    }
+    completedFirst {
+        ...WinBlock
+    }
+}
+
+query GetGameStatistics($titleId: ID!, $filter: GameStatisticsFilter!) {
+    gameStatistics(titleId: $titleId, filter: $filter) {
+        aggregationGameIds
+        count
+        games {
+            draftActions {
+                draftable {
+                    id
+                    type
+                    name
+                }
+                type {
+                    value
+                    count
+                    percentage
+                }
+            }
+            teams {
+                money {
+                    ...StatBlock
+                }
+                inventoryValue {
+                    ...StatBlock
+                }
+                netWorth {
+                    ...StatBlock
+                }
+                score {
+                    ...StatBlock
+                }
+                kills {
+                    ...StatBlock
+                }
+                killAssistsGiven {
+                    ...StatBlock
+                }
+                killAssistsReceived {
+                    ...StatBlock
+                }
+                teamkills {
+                    ...StatBlock
+                }
+                teamkillAssistsGiven {
+                    ...StatBlock
+                }
+                teamkillAssistsReceived {
+                    ...StatBlock
+                }
+                selfkills {
+                    ...StatBlock
+                }
+                deaths {
+                    ...StatBlock
+                }
+                structuresDestroyed {
+                    ...StatBlock
+                }
+                structuresCaptured {
+                    ...StatBlock
+                }
+                objectives {
+                    ...ObjectiveStats
+                }
+                unitKills {
+                    unitName
+                    count {
+                        ...StatBlock
+                    }
+                }
+                players {
+                    character {
+                        character {
+                            id
+                            name
+                        }
+                        count
+                        percentage
+                    }
+                }
+            }
+            duration {
+                sum
+                min
+                max
+                avg
+            }
+            map {
+                map {
+                    id
+                    name
+                }
+                count
+                percentage
+            }
+        }
+        segments {
+            type
+            count {
+                ...StatBlock
+            }
+        }
+    }
+}

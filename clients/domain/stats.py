@@ -115,8 +115,39 @@ def get_team_game_stats(team_id: str, selection: dict):
         json.dump(data, f, indent=4)
     return data
 
-def get_match_stats(match_id: str):
-    pass
+
+def get_game_stats(game_title_id: str, filter_: dict):
+    """
+    Fetches and retrieves statistics for a specific game based on a given title ID and filter criteria.
+    Performs a GraphQL query to an external API, saves the response to a JSON file, and returns the
+    query result.
+
+    Args:
+        game_title_id (str): The unique identifier for the game title for which statistics are requested.
+        filter_ (dict): A dictionary containing filter criteria to customize the game statistics query.
+
+    Returns:
+        dict: Parsed response data containing the game statistics.
+
+    Raises:
+        RuntimeError: If there is an error during the GraphQL query execution or file I/O operations.
+
+    Note: Game statistics filters are all mutually exclusive.
+    Example Filters:
+        "startedAt": {"period": "LAST_YEAR"}
+        "tournament": {"id": {"in": ["757073"]}, "includeChildren": True}
+        "version": {"id": {"in": []}} # Game version IDs
+    """
+    query = load_graphql_query("gamestats")
+    variables = {"titleId": game_title_id, "filter": filter_}
+
+    client = GraphQLClient(base_url=GRID_STATS_API_URL, api_key=GRID_API_KEY)
+    data = client.execute(query=query, variables=variables)
+    response_file = PROJECT_ROOT / "clients" / "response" / "game-stats.json"
+    response_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(response_file, "w") as f:
+        json.dump(data, f, indent=4)
+    return data
 
 def get_series_stats(series_id: str):
     pass
@@ -126,21 +157,31 @@ def player_stats(player_id: str):
 
 
 if __name__ == '__main__':
-    team_stats = get_team_stats(team_id="53625", filter_={"startedAt": {"period": "LAST_YEAR"}})
+    team_stats = get_team_stats(team_id="29", filter_={"startedAt": {"period": "LAST_YEAR"}})
     print(team_stats)
 
-    team_game_stats = get_team_game_stats(
-        team_id="53625",
-        selection={
-            "first": 30,
-            # "filter": {
-            #
-            # },
-            "orderBy": [
-                {
-                    "field": "STARTED_AT",
-                    "direction": "DESC"
-                }
-            ]
-        }
-    )
+    # team_game_stats = get_team_game_stats(
+    #     team_id="53625",
+    #     selection={
+    #         "first": 30,
+    #         # "filter": {
+    #         #
+    #         # },
+    #         "orderBy": [
+    #             {
+    #                 "field": "STARTED_AT",
+    #                 "direction": "DESC"
+    #             }
+    #         ]
+    #     }
+    # )
+    #
+    # game_stats = get_game_stats(
+    #     game_title_id="6",
+    #     filter_={
+    #         "startedAt": {"period": "LAST_YEAR"},
+    #         # "tournament": {"id": {"in": ["757073"]}, "includeChildren": True},
+    #         # "version": {"id": {"in": []}} # Game version IDs
+    #     }
+    # )
+    # print(game_stats)
