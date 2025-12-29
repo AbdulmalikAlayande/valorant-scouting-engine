@@ -1,0 +1,24 @@
+2025-12-28 16:49:18,608 - storage.db - INFO - Connected to PostgreSQL: PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit
+2025-12-28 16:49:18,878 - jobs.generate_report - INFO - Processing report for Team Liquid (ID: 53625)...
+2025-12-28 16:49:33,939 - jobs.generate_report - ERROR - Failed to process report for Team Liquid: 'list' object has no attribute 'get'
+2025-12-28 16:50:16,212 - storage.db - INFO - Connected to PostgreSQL: PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit
+2025-12-28 16:50:16,472 - jobs.generate_report - INFO - Processing report for Team Liquid (ID: 53625)...
+2025-12-28 16:50:34,772 - jobs.generate_report - ERROR - Failed to process report for Team Liquid: 'list' object has no attribute 'get'
+2025-12-28 16:51:29,508 - storage.db - INFO - Connected to PostgreSQL: PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit
+2025-12-28 16:51:29,719 - jobs.generate_report - INFO - Processing report for Team Liquid (ID: 53625)...
+2025-12-28 16:51:44,270 - storage.db - ERROR - Database error: there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+2025-12-28 16:51:44,271 - jobs.generate_report - ERROR - Failed to process report for Team Liquid: there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+2025-12-28 16:53:59,445 - storage.db - INFO - Connected to PostgreSQL: PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit
+2025-12-28 16:53:59,645 - jobs.generate_report - INFO - Processing report for Team Liquid (ID: 53625)...
+2025-12-28 16:54:09,782 - storage.db - ERROR - Database error: there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+2025-12-28 16:54:09,783 - jobs.generate_report - ERROR - Failed to process report for Team Liquid: there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+2025-12-28 16:55:21,196 - storage.db - INFO - Connected to PostgreSQL: PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit
+2025-12-28 16:55:21,402 - jobs.generate_report - INFO - Processing report for Team Liquid (ID: 53625)...
+2025-12-28 16:55:31,678 - jobs.generate_report - INFO - Successfully generated report for Team Liquid
+2025-12-28 16:56:04,239 - storage.db - INFO - Connected to PostgreSQL: PostgreSQL 17.5 on x86_64-windows, compiled by msvc-19.43.34808, 64-bit
+2025-12-28 16:56:04,608 - jobs.generate_report - INFO - Processing report for Team Liquid (ID: 53625)...
+2025-12-28 16:56:16,187 - jobs.generate_report - INFO - Successfully generated report for Team Liquid
