@@ -133,40 +133,60 @@ def upsert_scouting_report(report_data: Dict[str, Any]):
         })
     """
     with get_db_cursor() as cursor:
-        cursor.execute("""
-                       INSERT INTO scouting_reports (report_request_id, team_id, team_name,
-                                                     total_matches, total_games, win_rate, current_streak,
-                                                     top_agents, map_performance, player_stats, actionable_insights,
-                                                     time_window)
-                       VALUES (%(report_request_id)s, %(team_id)s, %(team_name)s,
-                               %(total_matches)s, %(total_games)s, %(win_rate)s, %(current_streak)s,
-                               %(top_agents)s, %(map_performance)s, %(player_stats)s, %(actionable_insights)s,
-                               %(time_window)s)
-                       ON CONFLICT (report_request_id, team_id)
-                           DO UPDATE SET total_matches       = EXCLUDED.total_matches,
-                                         total_games         = EXCLUDED.total_games,
-                                         win_rate            = EXCLUDED.win_rate,
-                                         current_streak      = EXCLUDED.current_streak,
-                                         top_agents          = EXCLUDED.top_agents,
-                                         map_performance     = EXCLUDED.map_performance,
-                                         player_stats        = EXCLUDED.player_stats,
-                                         actionable_insights = EXCLUDED.actionable_insights,
-                                         created_at          = NOW()
-                       RETURNING id
-                       """, {
-                           'report_request_id': report_data.get('report_request_id'),
-                           'team_id': report_data['team_id'],
-                           'team_name': report_data['team_name'],
-                           'total_matches': report_data.get('total_matches', 0),
-                           'total_games': report_data.get('total_games', 0),
-                           'win_rate': report_data.get('win_rate', 0.0),
-                           'current_streak': report_data.get('current_streak', 0),
-                           'top_agents': Json(report_data.get('top_agents', [])),
-                           'map_performance': Json(report_data.get('map_performance', {})),
-                           'player_stats': Json(report_data.get('player_stats', [])),
-                           'actionable_insights': Json(report_data.get('actionable_insights', [])),
-                           'time_window': report_data.get('time_window', 'LAST_3_MONTHS')
-                       })
+        # Check if exists
+        cursor.execute("SELECT id FROM scouting_reports WHERE report_request_id = %s", (report_data.get('report_request_id'),))
+        existing = cursor.fetchone()
+        
+        if existing:
+            cursor.execute("""
+                           UPDATE scouting_reports SET
+                               total_matches       = %(total_matches)s,
+                               total_games         = %(total_games)s,
+                               win_rate            = %(win_rate)s,
+                               current_streak      = %(current_streak)s,
+                               top_agents          = %(top_agents)s,
+                               map_performance     = %(map_performance)s,
+                               player_stats        = %(player_stats)s,
+                               actionable_insights = %(actionable_insights)s,
+                               created_at          = NOW()
+                           WHERE report_request_id = %(report_request_id)s
+                           RETURNING id
+                           """, {
+                               'report_request_id': report_data.get('report_request_id'),
+                               'total_matches': report_data.get('total_matches', 0),
+                               'total_games': report_data.get('total_games', 0),
+                               'win_rate': report_data.get('win_rate', 0.0),
+                               'current_streak': report_data.get('current_streak', 0),
+                               'top_agents': Json(report_data.get('top_agents', [])),
+                               'map_performance': Json(report_data.get('map_performance', {})),
+                               'player_stats': Json(report_data.get('player_stats', [])),
+                               'actionable_insights': Json(report_data.get('actionable_insights', [])),
+                           })
+        else:
+            cursor.execute("""
+                           INSERT INTO scouting_reports (report_request_id, team_id, team_name,
+                                                         total_matches, total_games, win_rate, current_streak,
+                                                         top_agents, map_performance, player_stats, actionable_insights,
+                                                         time_window)
+                           VALUES (%(report_request_id)s, %(team_id)s, %(team_name)s,
+                                   %(total_matches)s, %(total_games)s, %(win_rate)s, %(current_streak)s,
+                                   %(top_agents)s, %(map_performance)s, %(player_stats)s, %(actionable_insights)s,
+                                   %(time_window)s)
+                           RETURNING id
+                           """, {
+                               'report_request_id': report_data.get('report_request_id'),
+                               'team_id': report_data['team_id'],
+                               'team_name': report_data['team_name'],
+                               'total_matches': report_data.get('total_matches', 0),
+                               'total_games': report_data.get('total_games', 0),
+                               'win_rate': report_data.get('win_rate', 0.0),
+                               'current_streak': report_data.get('current_streak', 0),
+                               'top_agents': Json(report_data.get('top_agents', [])),
+                               'map_performance': Json(report_data.get('map_performance', {})),
+                               'player_stats': Json(report_data.get('player_stats', [])),
+                               'actionable_insights': Json(report_data.get('actionable_insights', [])),
+                               'time_window': report_data.get('time_window', 'LAST_3_MONTHS')
+                           })
 
         result = cursor.fetchone()
         return result['id']

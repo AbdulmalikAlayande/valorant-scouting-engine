@@ -1,41 +1,135 @@
+fragment StatBlock on AggregateIntStatistic {
+    sum
+    min
+    max
+    avg
+    ratePerMinute {
+        min
+        max
+        avg
+    }
+}
+
+fragment WinBlock on BooleanOccurrenceStatistic {
+    value
+    count
+    percentage
+    streak {
+        min
+        max
+        current
+    }
+}
+
+fragment ObjectiveStats on ObjectiveStatistics {
+    type
+    completionCount {
+        ...StatBlock
+    }
+    completedFirst {
+        ...WinBlock
+    }
+}
+
 query GetPlayerStatistics($playerId: ID!, $filter: PlayerStatisticsFilter!) {
     playerStatistics(playerId: $playerId, filter: $filter) {
         id
         series {
             count
             won {
-                count
-                percentage
+                ...WinBlock
             }
             kills {
-                sum
-                avg
+                ...StatBlock
+            }
+            killAssistsGiven {
+                ...StatBlock
+            }
+            killAssistsReceived {
+                ...StatBlock
+            }
+            teamkills {
+                ...StatBlock
+            }
+            teamkillAssistsGiven {
+                ...StatBlock
+            }
+            teamkillAssistsReceived {
+                ...StatBlock
+            }
+            selfkills {
+                ...StatBlock
             }
             deaths {
-                sum
-                avg
+                ...StatBlock
+            }
+            structuresDestroyed {
+                ...StatBlock
+            }
+            structuresCaptured {
+                ...StatBlock
+            }
+            objectives {
+                ...ObjectiveStats
+            }
+            firstKill {
+                ...WinBlock
             }
         }
         game {
             count
+            money {
+                ...StatBlock
+            }
+            inventoryValue {
+                ...StatBlock
+            }
+            netWorth {
+                ...StatBlock
+            }
             won {
-                count
-                percentage
+                ...WinBlock
             }
             kills {
-                sum
-                avg
+                ...StatBlock
+            }
+            killAssistsGiven {
+                ...StatBlock
+            }
+            killAssistsReceived {
+                ...StatBlock
+            }
+            teamkills {
+                ...StatBlock
+            }
+            teamkillAssistsGiven {
+                ...StatBlock
+            }
+            teamkillAssistsReceived {
+                ...StatBlock
+            }
+            selfkills {
+                ...StatBlock
             }
             deaths {
-                sum
-                avg
+                ...StatBlock
             }
-            characters {
-                count
-                percentage
-                character {
-                    id
-                    name
+            structuresDestroyed {
+                ...StatBlock
+            }
+            structuresCaptured {
+                ...StatBlock
+            }
+            objectives {
+                ...ObjectiveStats
+            }
+            firstKill {
+                ...WinBlock
+            }
+            unitKills {
+                unitName
+                count {
+                    ...StatBlock
                 }
             }
         }

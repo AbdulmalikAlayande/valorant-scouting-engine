@@ -150,9 +150,9 @@ def get_game_stats(game_title_id: str, filter_: dict):
     return data
 
 def get_series_stats(series_id: str):
-    pass
+    print(series_id)
 
-def player_stats(player_id: str, filter_: dict):
+def get_player_stats(player_id: str, filter_: dict):
     """
     Fetches player statistics based on the provided player ID and filter.
     """
@@ -169,31 +169,35 @@ def player_stats(player_id: str, filter_: dict):
 
 
 if __name__ == '__main__':
-    team_stats = get_team_stats(team_id="29", filter_={"startedAt": {"period": "LAST_YEAR"}})
-    print(team_stats)
-
-    # team_game_stats = get_team_game_stats(
-    #     team_id="53625",
-    #     selection={
-    #         "first": 30,
-    #         # "filter": {
-    #         #
-    #         # },
-    #         "orderBy": [
-    #             {
-    #                 "field": "STARTED_AT",
-    #                 "direction": "DESC"
-    #             }
-    #         ]
-    #     }
-    # )
+    # team_stats = get_team_stats(team_id="83", filter_={"startedAt": {"period": "LAST_YEAR"}})
+    # print(team_stats)
+    #
+    team_game_stats = get_team_game_stats(
+        team_id="1079",
+        selection={
+            "first": 30,
+            "filter": {
+              "teams": {"id": {"in": ["79", "94"]}}
+            },
+            "orderBy": [
+                {
+                    "field": "STARTED_AT",
+                    "direction": "DESC"
+                }
+            ]
+        }
+    )
+    print(team_game_stats)
     #
     # game_stats = get_game_stats(
     #     game_title_id="6",
     #     filter_={
-    #         "startedAt": {"period": "LAST_YEAR"},
-    #         # "tournament": {"id": {"in": ["757073"]}, "includeChildren": True},
+    #         # "startedAt": {"period": "LAST_YEAR"},
+    #         "tournament": {"id": {"in": ["757073"]}, "includeChildren": True},
     #         # "version": {"id": {"in": []}} # Game version IDs
     #     }
     # )
     # print(game_stats)
+    #
+    # player_stats = get_player_stats(player_id="1193", filter_={"startedAt": {"period": "LAST_YEAR"}})
+    # print(player_stats)

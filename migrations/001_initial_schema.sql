@@ -29,10 +29,10 @@ CREATE TABLE matches (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Analysis results (Python writes, Java reads)
+    -- Analysis results (Python writes, Java reads)
 CREATE TABLE scouting_reports (
     id SERIAL PRIMARY KEY,
-    report_request_id INT REFERENCES report_requests(id),
+    report_request_id INT UNIQUE REFERENCES report_requests(id),
     team_id VARCHAR(255) NOT NULL,
     team_name VARCHAR(255),
 
