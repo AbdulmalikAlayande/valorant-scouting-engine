@@ -1,0 +1,8 @@
+[project]
+name = "scouting_report_generator"
+version = "1.0.0"
+description = "Scouting report generation tool for esport teams, staffs and coaches"
+requires_python = "3.13"
+dependencies = [
+
+]

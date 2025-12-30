@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Self
 
 from pydantic import BaseModel
 
@@ -6,24 +6,36 @@ from pydantic import BaseModel
 class Team(BaseModel):
     id: str
     name: str
-    name_shortened: Optional[str]
-    logo_url: str | None = None
-    color_primary: str | None = None
-    organization_name: str | None = None
+    name_shortened: Optional[str] = None
+    logo_url: Optional[str] = None
+    color_primary: Optional[str] = None
+    data_provider: Optional[str] = None
+    organization_id: Optional[str] = None
+    organization_name: Optional[str] = None
 
     @classmethod
-    def from_grid_response(cls, node: dict):
+    def from_grid_response(cls, node: dict) -> Self:
         """
-        To parse GRID API response
+        Parse a GRID API team node (GraphQL 'node' dict) into a Team model.
+
+        Expected keys include:
+        - id (str), name (str)
+        - optional shortName, logoUrl, colorPrimary
+        - optional externalLinks.dataProvider.name
+        - optional organization.{id,name}
         """
+
         return cls(
             id=node["id"],
             name=node["name"],
-            name_shortened=node.get("shortName"),
+            name_shortened=node.get("nameShortened"),
             logo_url=node.get("logoUrl"),
             color_primary=node.get("colorPrimary"),
-            organization_name=node.get("organization", {}).get("name")
+            data_provider=node.get("dataProvider"),
+            organization_id=node.get("organizationId"),
+            organization_name=node.get("organizationName"),
         )
+
 
 class TeamStats(BaseModel):
     team_id: str

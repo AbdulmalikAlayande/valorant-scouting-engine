@@ -1,30 +1,12 @@
-import logging
 import os
 from pathlib import Path
 from contextlib import contextmanager
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from config.settings import DATABASES
+from config.globalutilitylogger import get_logger
 
-
-LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "db.log")
-
-def setup_logging():
-    log_dir = os.path.dirname(LOG_FILE) or "."
-    if log_dir != ".":
-        Path(log_dir).mkdir(parents=True, exist_ok=True)
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(LOG_FILE, encoding='utf-8'),
-            logging.StreamHandler()
-        ]
-    )
-    return logging.getLogger(__name__)
-
-logger = setup_logging()
+logger = get_logger(__name__)
 
 
 def get_connection():

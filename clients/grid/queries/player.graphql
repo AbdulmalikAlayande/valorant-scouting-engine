@@ -1,0 +1,74 @@
+fragment playerFields on Player {
+    id
+    nickname
+    title {
+        id
+        name
+        nameShortened
+    }
+    externalLinks {
+        dataProvider {
+            name
+            description
+        }
+        externalEntity {
+            id
+        }
+    }
+    roles {
+        id
+        name
+        private
+        title {
+            id
+            name
+            nameShortened
+            logoUrl
+        }
+    }
+    team {
+        id
+        name
+        nameShortened
+        private
+        logoUrl
+        colorPrimary
+        colorSecondary
+        title {
+            id
+            name
+            nameShortened
+        }
+        organization {
+            id
+            name
+        }
+        externalLinks {
+            dataProvider {
+                name
+                description
+            }
+            externalEntity {
+                id
+            }
+        }
+    }
+}
+
+query GetPlayers__TeamRoster($first: Int!, $filter: PlayerFilter!, $before: Cursor, $after: Cursor) {
+    players(first: $first, filter: $filter, before: $before, after: $after) {
+        totalCount
+        pageInfo {
+            hasPreviousPage
+            hasNextPage
+            startCursor
+            endCursor
+        }
+        edges {
+            cursor
+            node {
+                ...playerFields
+            }
+        }
+    }
+}

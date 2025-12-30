@@ -15,6 +15,7 @@ def get_team_by_name(team_name: str):
                         contains: $teamName
                         equals: $teamName
                     } 
+                    titleId: "6"
                 }
             ) {
                 totalCount
@@ -36,6 +37,7 @@ def get_team_by_name(team_name: str):
         fragment teamFields on Team {
             id
             name
+            nameShortened
             title {
                 id
                 name
@@ -125,4 +127,4 @@ def get_single_team(team_id: str):
 
 if __name__ == "__main__":
     get_team_by_name(team_name="Team Liquid")
-    get_single_team(team_id="53625")
+    # get_single_team(team_id="53625")
