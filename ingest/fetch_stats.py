@@ -3,13 +3,14 @@ from typing import Any, Dict, Optional
 
 def ingest_team_statistics(team_id: str, time_window: str) -> Dict[str, Any]:
     """
-    Fetch overall team statistics for a given period. Use this to compute headline
+    Fetch overall team statistics for a given period. Used to compute headline
     metrics for reports such as win rate, K/D, and streaks. Returns a normalized
     dict with 'meta' and 'records' keys suitable for storage or downstream
     transforms. Validates inputs and returns a stub payload until wired to data.
     """
     if not team_id or not team_id.strip() or not time_window or not time_window.strip():
         raise ValueError("team_id and time_window are required")
+
     return {
         "team_id": team_id.strip(),
         "time_window": time_window.strip(),
@@ -53,3 +54,4 @@ def ingest_player_statistics(player_id: str, time_window: str) -> Dict[str, Any]
         "records": [],
         "meta": {"kind": "player_overall", "status": "stub"},
     }
+
