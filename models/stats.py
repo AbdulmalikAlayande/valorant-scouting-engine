@@ -12,7 +12,7 @@ from typing import List, Optional, Dict, Any
 
 @dataclass
 class AgentPick:
-    """Agent pick data with count and percentage."""
+    """Agent picks data with count and percentage."""
     agent_id: str
     agent_name: str
     count: int
@@ -125,7 +125,7 @@ class TeamStatistics(BaseGameStats):
 
     @property
     def attack_side_stats(self) -> SideStats:
-        """Get attack side as structured object."""
+        """Get attack side as a structured object."""
         return SideStats(
             rounds=self.attack_rounds,
             wins=self.attack_wins,
@@ -134,7 +134,7 @@ class TeamStatistics(BaseGameStats):
 
     @property
     def defense_side_stats(self) -> SideStats:
-        """Get defense side as structured object."""
+        """Get defense side as a structured object."""
         return SideStats(
             rounds=self.defense_rounds,
             wins=self.defense_wins,

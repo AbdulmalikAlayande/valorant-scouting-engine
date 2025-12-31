@@ -21,7 +21,7 @@ def get_player_by_external_id():
     pass
 
 
-def get_team_players(team_id: Optional[str], filter_: dict | None = None, limit: int = 50):
+def get_team_players(team_id: str, filter_: dict | None = None, limit: int = 50):
     """
     Query to.
 

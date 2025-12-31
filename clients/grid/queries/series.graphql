@@ -1,0 +1,98 @@
+query GetSeries ($first: Int!, $filter: SeriesFilter!) {
+    allSeries (
+        first: $first
+        filter: $filter
+    ) {
+        totalCount,
+        pageInfo {
+            hasPreviousPage
+            hasNextPage
+            startCursor
+            endCursor
+        }
+        edges {
+            cursor
+            node {
+                ...seriesFields
+            }
+        }
+    }
+}
+fragment seriesFields on Series {
+    id
+    title {
+        name
+        nameShortened
+    }
+    externalLinks {
+        dataProvider {
+            name
+            description
+        }
+        externalEntity {
+            id
+        }
+    }
+    players {
+        id
+        nickname
+        roles {
+            id
+            name
+            title {
+                id
+                name
+                nameShortened
+            }
+        }
+    }
+    tournament {
+        id
+        name
+        nameShortened
+        startDate
+        endDate
+        titles {
+            id
+            name
+            nameShortened
+        }
+        teams {
+            id
+            name
+            title {
+                id
+                name
+                nameShortened
+            }
+            rating
+            titles {
+                id
+                name
+                nameShortened
+            }
+            organization {
+                id
+                name
+            }
+        }
+        venueType
+        prizePool {
+          amount
+        }
+    }
+    startTimeScheduled
+    format {
+        id
+        name
+        nameShortened
+    }
+    teams {
+        baseInfo {
+            id
+            name
+            nameShortened
+        }
+        scoreAdvantage
+    }
+}

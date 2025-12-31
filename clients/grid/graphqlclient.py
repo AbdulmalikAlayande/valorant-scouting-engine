@@ -11,7 +11,6 @@ class GraphQLClient:
         self.api_key = api_key
         self.timeout = timeout
 
-
     def execute(self, query: str, variables: dict | None = None):
 
         payload = {

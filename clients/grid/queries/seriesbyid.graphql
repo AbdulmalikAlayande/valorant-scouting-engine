@@ -1,0 +1,59 @@
+query GetSeriesById ($id: ID!) {
+    series (id: $id) {
+        ...seriesFields
+    }
+}
+fragment seriesFields on Series {
+    id
+    title {
+        name
+        nameShortened
+    }
+    tournament {
+        id
+        name
+        nameShortened
+        startDate
+        endDate
+        titles {
+            id
+            name
+            nameShortened
+        }
+        teams {
+            id
+            name
+            title {
+                id
+                name
+                nameShortened
+            }
+            rating
+            titles {
+                id
+                name
+                nameShortened
+            }
+            organization {
+                id
+                name
+            }
+        }
+        venueType
+        prizePool {
+          amount
+        }
+    }
+    startTimeScheduled
+    format {
+        id
+        name
+        nameShortened
+    }
+    teams {
+        baseInfo {
+            name
+        }
+        scoreAdvantage
+    }
+}
