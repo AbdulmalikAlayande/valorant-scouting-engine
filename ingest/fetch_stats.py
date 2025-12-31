@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional, List
 
-from clients.domain.stats import get_team_game_statistics, get_team_statistics
+from clients.domain.stats import get_player_statistics, get_team_game_statistics, get_team_statistics
 from config.globalutilitylogger import get_logger
 
 _logger = get_logger(__name__)
@@ -643,18 +643,124 @@ def ingest_team_game_statistics(
         }
 
 
+# python
 def ingest_player_statistics(player_id: str, time_window: str) -> Dict[str, Any]:
     """
-    Fetch player-level stats over a time window. Use to build player tendencies,
-    agent pools, and outlier detection. Returns a normalized dict with metadata
-    for downstream transforms. Validates inputs and returns a stub until actual
-    data wiring is added.
+    Fetch player-level stats over a time window. Returns a normalized dict with
+    a single record (or empty records list) and metadata.
+
+    Uses helper extractors in this module to pull wins, percentages, objectives,
+    and first-kill rates from the GRID response shape (see clients/response/player-statistics.json).
     """
-    if not player_id or not player_id.strip() or not time_window or not time_window.strip():
-        raise ValueError("player_id and time_window are required")
-    return {
-        "player_id": player_id.strip(),
-        "time_window": time_window.strip(),
-        "records": [],
-        "meta": {"kind": "player_overall", "status": "stub"},
-    }
+    if not player_id or not player_id.strip():
+        raise ValueError("player_id is required")
+    if not time_window or not time_window.strip():
+        raise ValueError("time_window is required")
+
+    player_id = player_id.strip()
+    time_window = time_window.strip()
+
+    try:
+        data = get_player_statistics(player_id=player_id, time_window=time_window)
+        if not data or not isinstance(data, dict):
+            _logger.warning(f"No player statistics found for {player_id} ({time_window})")
+            return {
+                "player_id": player_id,
+                "time_window": time_window,
+                "records": [],
+                "meta": {"kind": "player_statistics", "status": "not_found"},
+            }
+
+        # GRID returns a shape with 'series' and 'game' keys
+        series = data.get("series", {}) or {}
+        game = data.get("game", {}) or {}
+
+        # Series-level
+        series_count = series.get("count", 0)
+        series_wins = _extract_win_data(series.get("won", []))
+        series_win_rate = _extract_win_percentage(series.get("won", []))
+
+        # Game-level
+        game_count = game.get("count", 0)
+        game_wins = _extract_win_data(game.get("won", []))
+        game_win_rate = _extract_win_percentage(game.get("won", []))
+
+        # Combat / rates from game bucket (preferred for per-game numbers)
+        kills = game.get("kills", {}) or {}
+        kills_total = kills.get("sum", 0)
+        kills_avg = kills.get("avg", 0.0)
+        kills_min = kills.get("min", 0)
+        kills_max = kills.get("max", 0)
+
+        deaths = game.get("deaths", {}) or {}
+        deaths_total = deaths.get("sum", 0)
+        deaths_avg = deaths.get("avg", 0.0)
+        deaths_min = deaths.get("min", 0)
+        deaths_max = deaths.get("max", 0)
+
+        kill_assists_given = game.get("killAssistsGiven", {}) or {}
+        kag_total = kill_assists_given.get("sum", 0)
+        kag_avg = kill_assists_given.get("avg", 0.0)
+
+        kill_assists_received = game.get("killAssistsReceived", {}) or {}
+        kar_total = kill_assists_received.get("sum", 0)
+        kar_avg = kill_assists_received.get("avg", 0.0)
+
+        # First kill / first blood
+        first_kill_pct = _extract_first_kill_percentage(game.get("firstKill", []))
+
+        # Objectives (game-level)
+        objectives = game.get("objectives", []) or []
+        plant_avg = _extract_objective_avg(objectives, "plantBomb")
+        defuse_avg = _extract_objective_avg(objectives, "defuseBomb")
+        explode_avg = _extract_objective_avg(objectives, "explodeBomb")
+        begin_defuse_avg = _extract_objective_avg(objectives, "beginDefuseBomb")
+        capture_ultimate_avg = _extract_objective_avg(objectives, "captureUltimateOrb")
+
+        # Assemble normalized record
+        record: Dict[str, Any] = {
+            "player_id": player_id,
+            "time_window": time_window,
+            "series": {
+                "count": series_count,
+                "wins": series_wins,
+                "win_rate": series_win_rate,
+            },
+            "games": {
+                "count": game_count,
+                "wins": game_wins,
+                "win_rate": game_win_rate,
+                "first_kill_percentage": first_kill_pct,
+            },
+            "combat": {
+                "kills": {"total": kills_total, "avg": kills_avg, "min": kills_min, "max": kills_max},
+                "deaths": {"total": deaths_total, "avg": deaths_avg, "min": deaths_min, "max": deaths_max},
+                "kill_assists_given": {"total": kag_total, "avg": kag_avg},
+                "kill_assists_received": {"total": kar_total, "avg": kar_avg},
+            },
+            "objectives": {
+                "plant_avg": plant_avg,
+                "defuse_avg": defuse_avg,
+                "explode_avg": explode_avg,
+                "begin_defuse_avg": begin_defuse_avg,
+                "capture_ultimate_avg": capture_ultimate_avg,
+            },
+            "raw": data,
+        }
+
+        _logger.info(f"Ingested player statistics for {player_id} ({time_window})")
+        return {
+            "player_id": player_id,
+            "time_window": time_window,
+            "records": [record],
+            "meta": {"kind": "player_statistics", "status": "ok", "record_count": 1},
+        }
+
+    except Exception as e:
+        _logger.error(f"Failed to ingest player statistics for {player_id} ({time_window}): {str(e)}")
+        return {
+            "player_id": player_id,
+            "time_window": time_window,
+            "records": [],
+            "meta": {"kind": "player_statistics", "status": "error", "error": str(e)},
+        }
