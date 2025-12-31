@@ -33,7 +33,7 @@ def _extract_win_percentage(won_param: List[Dict[str, Any]]) -> float:
 
 
 def _extract_first_kill_percentage(first_kill: List[Dict[str, Any]]) -> float:
-    """Extract first kill percentage (percentage of games where team got first blood)."""
+    """Extract first kill percentage (percentage of games where a team got first blood)."""
     if not first_kill or not isinstance(first_kill, list):
         return 0.0
 
@@ -501,7 +501,7 @@ def ingest_team_game_statistics(
         avg_inventory_value = inventory_value.get("avg", 0.0)
         avg_net_worth = net_worth.get("avg", 0.0)
 
-        # Extract team kills (friendly fire) and self kills
+        # Extract team kills (friendly fire) and self-kills
         teamkills = game_stats.get("teamkills", {})
         selfkills = game_stats.get("selfkills", {})
 
