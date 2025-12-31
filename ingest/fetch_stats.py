@@ -288,27 +288,359 @@ def ingest_team_statistics(team_id: str, time_window: str) -> Dict[str, Any]:
         }
 
 
+def _extract_objective_data(objectives: List[Dict[str, Any]], objective_type: str) -> Dict[str, Any]:
+    """Extract completion count and first completion data for a specific objective."""
+    if not objectives or not isinstance(objectives, list):
+        return {
+            "count_sum": 0,
+            "count_avg": 0.0,
+            "completed_first_percentage": 0.0
+        }
+
+    for obj in objectives:
+        if isinstance(obj, dict) and obj.get("type") == objective_type:
+            completion_count = obj.get("completionCount", {})
+            completed_first = obj.get("completedFirst", [])
+
+            count_sum = completion_count.get("sum", 0) if isinstance(completion_count, dict) else 0
+            count_avg = completion_count.get("avg", 0.0) if isinstance(completion_count, dict) else 0.0
+
+            # Get percentage where value is True
+            first_percentage = 0.0
+            if isinstance(completed_first, list):
+                for item in completed_first:
+                    if isinstance(item, dict) and item.get("value") is True:
+                        first_percentage = item.get("percentage", 0.0)
+                        break
+
+            return {
+                "count_sum": count_sum,
+                "count_avg": count_avg,
+                "completed_first_percentage": first_percentage
+            }
+
+    return {
+        "count_sum": 0,
+        "count_avg": 0.0,
+        "completed_first_percentage": 0.0
+    }
+
+
+def _extract_character_picks(players_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract agent pick rates from players.characters data."""
+    if not players_data or not isinstance(players_data, dict):
+        return []
+
+    characters = players_data.get("characters", [])
+    if not isinstance(characters, list):
+        return []
+
+    agent_picks = []
+    for char_data in characters:
+        if not isinstance(char_data, dict):
+            continue
+
+        character = char_data.get("character", {})
+        if not isinstance(character, dict):
+            continue
+
+        agent_picks.append({
+            "agent_id": character.get("id", "unknown"),
+            "agent_name": character.get("name", "Unknown"),
+            "count": char_data.get("count", 0),
+            "percentage": char_data.get("percentage", 0.0)
+        })
+
+    # Sort by count descending (most picked first)
+    agent_picks.sort(key=lambda x: x["count"], reverse=True)
+    return agent_picks
+
+
+def _parse_duration_to_seconds(duration_str: str) -> float:
+    """Parse ISO 8601 duration string to seconds (e.g., 'PT49M28.05372S' -> 2968.05)."""
+    if not duration_str or not isinstance(duration_str, str):
+        return 0.0
+
+    try:
+        # Simple parser for PT format: PT[hours]H[minutes]M[seconds]S
+        import re
+
+        # Remove PT prefix
+        duration = duration_str.replace("PT", "")
+
+        hours = 0
+        minutes = 0
+        seconds = 0.0
+
+        # Extract hours
+        hour_match = re.search(r'(\d+)H', duration)
+        if hour_match:
+            hours = int(hour_match.group(1))
+
+        # Extract minutes
+        minute_match = re.search(r'(\d+)M', duration)
+        if minute_match:
+            minutes = int(minute_match.group(1))
+
+        # Extract seconds
+        second_match = re.search(r'([\d.]+)S', duration)
+        if second_match:
+            seconds = float(second_match.group(1))
+
+        return hours * 3600 + minutes * 60 + seconds
+    except Exception as e:
+        _logger.error(f"Failed to parse duration string {duration_str}: {str(e)}")
+        return 0.0
+
+
 def ingest_team_game_statistics(
         team_id: str, time_window: str, map_filter: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Fetch per-game/map statistics for a team in a time window. Use for map
     performance analysis and veto logic (e.g., WR by map/side). Returns a
-    normalized dict with an optional map filter echoed for traceability. Inputs
-    are validated; implementation is a stub to be connected to data later.
+    normalized dict with an optional map filter echoed for traceability.
+
+    Includes agent pick rates, objective completion rates, and game-level combat stats.
+
+    Args:
+        team_id: Team ID
+        time_window: "LAST_MONTH", "LAST_3_MONTHS", "LAST_6_MONTHS", "LAST_YEAR"
+        map_filter: Optional map ID to filter by specific map
+
+    Returns:
+        Dict[str, Any]: Normalized dict with game-level stats and metadata
     """
-    if not team_id or not team_id.strip() or not time_window or not time_window.strip():
-        raise ValueError("team_id and time_window are required")
+    if not team_id or not team_id.strip():
+        raise ValueError("team_id is required")
+    if not time_window or not time_window.strip():
+        raise ValueError("time_window is required")
 
-    data = get_team_game_statistics(team_id=team_id, time_window=time_window, map_ids=[map_filter])
+    team_id = team_id.strip()
+    time_window = time_window.strip()
 
-    return {
-        "team_id": team_id.strip(),
-        "time_window": time_window.strip(),
-        "map_filter": map_filter.strip() if isinstance(map_filter, str) else None,
-        "records": [],
-        "meta": {"kind": "team_game", "status": "stub"},
-    }
+    try:
+        # Call the actual API with map filter if provided
+        map_ids = [map_filter] if map_filter and map_filter.strip() else None
+        data = get_team_game_statistics(
+            team_id=team_id,
+            time_window=time_window,
+            map_ids=map_ids
+        )
+
+        if not data or not isinstance(data, dict):
+            _logger.warning(f"No game statistics found for team {team_id} in {time_window}")
+            return {
+                "team_id": team_id,
+                "time_window": time_window,
+                "map_filter": map_filter,
+                "records": [],
+                "meta": {"kind": "team_game", "status": "no_data"}
+            }
+
+        game_stats = data.get("teamGameStatistics", {})
+        if not isinstance(game_stats, dict):
+            _logger.warning(f"Invalid game statistics structure for team {team_id}")
+            return {
+                "team_id": team_id,
+                "time_window": time_window,
+                "map_filter": map_filter,
+                "records": [],
+                "meta": {"kind": "team_game", "status": "invalid_structure"}
+            }
+
+        # Extract game count
+        game_count = game_stats.get("count", 0)
+        if game_count == 0:
+            _logger.info(f"No games found for team {team_id} in {time_window}")
+            return {
+                "team_id": team_id,
+                "time_window": time_window,
+                "map_filter": map_filter,
+                "records": [],
+                "meta": {"kind": "team_game", "status": "no_games"}
+            }
+
+        # Extract win data
+        won_list = game_stats.get("won", [])
+        games_won = _extract_win_data(won_list)
+        game_win_rate = _extract_win_percentage(won_list)
+        win_streak = _extract_win_streak(won_list)
+
+        # Extract combat stats
+        kills = game_stats.get("kills", {})
+        deaths = game_stats.get("deaths", {})
+        kill_assists = game_stats.get("killAssistsGiven", {})
+
+        kills_total = kills.get("sum", 0)
+        kills_avg = kills.get("avg", 0.0)
+        kills_min = kills.get("min", 0)
+        kills_max = kills.get("max", 0)
+
+        deaths_total = deaths.get("sum", 0)
+        deaths_avg = deaths.get("avg", 0.0)
+        deaths_min = deaths.get("min", 0)
+        deaths_max = deaths.get("max", 0)
+
+        assists_total = kill_assists.get("sum", 0)
+        assists_avg = kill_assists.get("avg", 0.0)
+
+        # Calculate K/D ratio
+        kd_ratio = round(kills_total / deaths_total, 2) if deaths_total > 0 else 0.0
+
+        # Extract first blood data
+        first_kill = game_stats.get("firstKill", [])
+        first_bloods_percentage = _extract_first_kill_percentage(first_kill)
+
+        # Extract economy stats
+        money = game_stats.get("money", {})
+        inventory_value = game_stats.get("inventoryValue", {})
+        net_worth = game_stats.get("netWorth", {})
+
+        avg_money = money.get("avg", 0.0)
+        avg_inventory_value = inventory_value.get("avg", 0.0)
+        avg_net_worth = net_worth.get("avg", 0.0)
+
+        # Extract team kills (friendly fire) and self kills
+        teamkills = game_stats.get("teamkills", {})
+        selfkills = game_stats.get("selfkills", {})
+
+        teamkills_total = teamkills.get("sum", 0)
+        selfkills_total = selfkills.get("sum", 0)
+
+        # Extract score
+        score = game_stats.get("score", {})
+        score_total = score.get("sum", 0)
+        score_avg = score.get("avg", 0.0)
+
+        # Extract objective data
+        objectives = game_stats.get("objectives", [])
+
+        plant_bomb = _extract_objective_data(objectives, "plantBomb")
+        defuse_bomb = _extract_objective_data(objectives, "defuseBomb")
+        explode_bomb = _extract_objective_data(objectives, "explodeBomb")
+        begin_defuse = _extract_objective_data(objectives, "beginDefuseBomb")
+        stop_defuse = _extract_objective_data(objectives, "stopDefuseBomb")
+        reach_defuse_checkpoint = _extract_objective_data(objectives, "reachDefuseBombCheckpoint")
+        capture_ultimate_orb = _extract_objective_data(objectives, "captureUltimateOrb")
+
+        # Extract agent picks
+        players_data = game_stats.get("players", {})
+        agent_picks = _extract_character_picks(players_data)
+
+        # Extract duration
+        duration = game_stats.get("duration", {})
+        duration_avg_str = duration.get("avg", "PT0S")
+        avg_game_duration_seconds = _parse_duration_to_seconds(duration_avg_str)
+
+        # Build normalized game statistics
+        game_data = {
+            # Identifiers
+            "team_id": team_id,
+            "time_window": time_window,
+            "map_filter": map_filter,
+
+            # Game count and wins
+            "game_count": game_count,
+            "games_won": games_won,
+            "game_win_rate": game_win_rate,
+            "win_streak_max": win_streak["max"],
+            "win_streak_current": win_streak["current"],
+
+            # Combat stats
+            "kills_total": kills_total,
+            "kills_avg": kills_avg,
+            "kills_min": kills_min,
+            "kills_max": kills_max,
+            "deaths_total": deaths_total,
+            "deaths_avg": deaths_avg,
+            "deaths_min": deaths_min,
+            "deaths_max": deaths_max,
+            "assists_total": assists_total,
+            "assists_avg": assists_avg,
+            "kd_ratio": kd_ratio,
+
+            # First bloods
+            "first_bloods_percentage": first_bloods_percentage,
+
+            # Mistakes
+            "teamkills_total": teamkills_total,
+            "selfkills_total": selfkills_total,
+
+            # Score
+            "score_total": score_total,
+            "score_avg": score_avg,
+
+            # Economy
+            "avg_money": avg_money,
+            "avg_inventory_value": avg_inventory_value,
+            "avg_net_worth": avg_net_worth,
+
+            # Objectives - Plant
+            "plant_bomb_total": plant_bomb["count_sum"],
+            "plant_bomb_avg": plant_bomb["count_avg"],
+            "plant_bomb_first_percentage": plant_bomb["completed_first_percentage"],
+
+            # Objectives - Defuse
+            "defuse_bomb_total": defuse_bomb["count_sum"],
+            "defuse_bomb_avg": defuse_bomb["count_avg"],
+            "defuse_bomb_first_percentage": defuse_bomb["completed_first_percentage"],
+
+            "begin_defuse_total": begin_defuse["count_sum"],
+            "begin_defuse_avg": begin_defuse["count_avg"],
+
+            "stop_defuse_total": stop_defuse["count_sum"],
+            "stop_defuse_avg": stop_defuse["count_avg"],
+
+            "reach_defuse_checkpoint_total": reach_defuse_checkpoint["count_sum"],
+            "reach_defuse_checkpoint_avg": reach_defuse_checkpoint["count_avg"],
+
+            # Objectives - Explode
+            "explode_bomb_total": explode_bomb["count_sum"],
+            "explode_bomb_avg": explode_bomb["count_avg"],
+            "explode_bomb_first_percentage": explode_bomb["completed_first_percentage"],
+
+            # Objectives - Ultimate orbs
+            "capture_ultimate_orb_total": capture_ultimate_orb["count_sum"],
+            "capture_ultimate_orb_avg": capture_ultimate_orb["count_avg"],
+
+            # Agent picks (top 5 for brevity)
+            "top_agents": agent_picks[:5] if agent_picks else [],
+            "total_unique_agents": len(agent_picks),
+
+            # Duration
+            "avg_game_duration_seconds": avg_game_duration_seconds,
+        }
+
+        _logger.info(f"Successfully ingested game statistics for {team_id} ({time_window}): "
+                     f"{game_count} games, {game_win_rate:.1f}% win rate")
+
+        return {
+            "team_id": team_id,
+            "time_window": time_window,
+            "map_filter": map_filter,
+            "records": [game_data],
+            "meta": {
+                "kind": "team_game",
+                "status": "success",
+                "game_count": game_count,
+                "unique_agents_played": len(agent_picks)
+            }
+        }
+
+    except Exception as e:
+        _logger.error(f"Failed to ingest game statistics for {team_id} ({time_window}): {str(e)}")
+        return {
+            "team_id": team_id,
+            "time_window": time_window,
+            "map_filter": map_filter,
+            "records": [],
+            "meta": {
+                "kind": "team_game",
+                "status": "error",
+                "error": str(e)
+            }
+        }
 
 
 def ingest_player_statistics(player_id: str, time_window: str) -> Dict[str, Any]:
