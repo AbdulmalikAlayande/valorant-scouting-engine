@@ -11,7 +11,7 @@ def _empty_team_statistics_response(team_id, time_window):
 
 
 def _extract_win_data(won_param: List[Dict[str, Any]]) -> int:
-    """Extract win count from the won array."""
+    """Extract the win count from the won array."""
     if not won_param or not isinstance(won_param, list):
         return 0
 
