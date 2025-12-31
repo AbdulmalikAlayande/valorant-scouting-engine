@@ -210,17 +210,18 @@ def get_team_map_performance(team_id: str, map_ids: list[str]) -> Dict[str, Any]
 
 if __name__ == '__main__':
     # Test: Team stats with a time window
-    team_stats = get_team_statistics(team_id="1079", time_window="LAST_YEAR")
+    team_stats = get_team_statistics(team_id="1079", time_window="LAST_3_MONTHS")
+    print(f"Team aggregationSeriesIds count: {len(team_stats.get('aggregationSeriesIds'))}")
     print(f"Team stats games count: {team_stats.get('game', {}).get('count')}")
 
     # Test: Team game stats (map-specific)
-    team_game_stats = get_team_game_statistics(
-        team_id="1079",
-        time_window="LAST_6_MONTHS",
-        limit=30
-    )
-    print(f"Team game stats count: {team_game_stats.get('count')}")
-    #
-    # # Test: Player stats
-    player_stats = get_player_statistics(player_id="2512", time_window="LAST_6_MONTHS")
-    print(f"Player series count: {player_stats.get('series', {}).get('count')}")
+    # team_game_stats = get_team_game_statistics(
+    #     team_id="1079",
+    #     time_window="LAST_MONTH",
+    #     limit=30
+    # )
+    # print(f"Team game stats count: {team_game_stats.get('count')}")
+    # #
+    # # # Test: Player stats
+    # player_stats = get_player_statistics(player_id="2512", time_window="LAST_6_MONTHS")
+    # print(f"Player series count: {player_stats.get('series', {}).get('count')}")

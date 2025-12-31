@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Self
+from typing import Any, Dict, Optional, Self, List
 
 from pydantic import BaseModel
 
@@ -39,6 +39,7 @@ class Team(BaseModel):
 
 class TeamStats(BaseModel):
     team_id: str
+    aggregated_series_ids: List[str]
 
     # --- General Performance ---
     total_series: int
@@ -72,4 +73,3 @@ class TeamStats(BaseModel):
     pistol_round_win_rate: float
     attack_win_rate: float
     defense_win_rate: float
-
