@@ -1,4 +1,4 @@
-from typing import Optional, Self
+from typing import Any, Dict, Optional, Self
 
 from pydantic import BaseModel
 
@@ -14,7 +14,7 @@ class Team(BaseModel):
     organization_name: Optional[str] = None
 
     @classmethod
-    def from_grid_response(cls, node: dict) -> Self:
+    def from_grid_response(cls, node: Dict[str, Any]) -> Self:
         """
         Parse a GRID API team node (GraphQL 'node' dict) into a Team model.
 
@@ -39,8 +39,37 @@ class Team(BaseModel):
 
 class TeamStats(BaseModel):
     team_id: str
-    total_matches: int
-    win_rate: float
+
+    # --- General Performance ---
+    total_series: int
+    series_win_rate: float
+    total_games: int
+    game_win_rate: float
+
+    # --- Combat Metrics (Totals) ---
+    kills_total: int
+    deaths_total: int
+    assists_total: int
+
+    # --- Combat Metrics (Averages) ---
     kills_avg: float
     deaths_avg: float
+    assists_avg: float
+    kd_ratio: float
+    first_bloods_avg: float
+
+    # --- VALORANT Specific Objectives (Averages) ---
+    spikes_planted_avg: float
+    spikes_defused_avg: float
+    bomb_explosions_avg: float
+    ultimate_orbs_captured_avg: float
+
+    # --- Economy and Sustainability (Averages) ---
+    avg_net_worth: float
+    avg_spend: float
+
+    # --- Tactical Tendencies (Win Rates) ---
+    pistol_round_win_rate: float
+    attack_win_rate: float
+    defense_win_rate: float
 
