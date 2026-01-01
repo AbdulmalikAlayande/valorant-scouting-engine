@@ -52,7 +52,7 @@ def get_team_statistics(
 def get_team_game_statistics(
         team_id: str,
         time_window: Optional[str] = None,
-        map_ids: Optional[list[str]] = None,
+        map_name_contains_or_eq: Optional[Dict[str, str]] = None,
         opponent_team_ids: Optional[list[str]] = None,
         limit: int = 50
 ) -> Dict[str, Any]:
@@ -62,7 +62,7 @@ def get_team_game_statistics(
     Args:
         team_id: Team ID
         time_window: "LAST_MONTH", "LAST_3_MONTHS", "LAST_6_MONTHS", "LAST_YEAR".
-        map_ids: Filter by specific map IDs
+        map_name_contains_or_eq: Filter by specific map IDs
         opponent_team_ids: Filter by specific opponent teams
         limit: Number of games to aggregate (default 50)
 
@@ -71,21 +71,19 @@ def get_team_game_statistics(
     """
     query = load_graphql_query("teamgamestats")
 
-    # Build selection filters
-    selection: Dict[str, Any] = {"first": limit}
-
-    game_filter = {}
+    # Build filters for selection
+    game_state_filter = {}
     if time_window:
-        game_filter["startedAt"] = {"period": time_window}
-    if map_ids:
-        game_filter["mapIds"] = {"in": map_ids}
+        game_state_filter["startedAt"] = {"period": time_window}
+    if map_name_contains_or_eq:
+        game_state_filter["map"] = {"name": map_name_contains_or_eq}
     if opponent_team_ids:
-        game_filter["teams"] = {"id": {"in": opponent_team_ids}}
+        game_state_filter["teams"] = {"id": {"in": opponent_team_ids}}
 
-    if game_filter:
-        selection["filter"] = game_filter
-
-    selection["orderBy"] = [{"field": "STARTED_AT", "direction": "DESC"}]
+    # Build selection
+    selection: Dict[str, Any] = {"first": limit, "orderBy": [{"field": "STARTED_AT", "direction": "DESC"}]}
+    if game_state_filter:
+        selection["filter"] = game_state_filter
 
     variables = {"teamId": team_id, "selection": selection}
 
@@ -199,29 +197,30 @@ def get_team_stats_by_tournament(team_id: str, tournament_id: str) -> Dict[str, 
     return get_team_statistics(team_id, tournament_ids=[tournament_id])
 
 
-def get_team_map_performance(team_id: str, map_ids: list[str]) -> Dict[str, Any]:
+def get_team_map_performance(team_id: str, map_name_contains_or_eq: Dict[str, str]) -> Dict[str, Any]:
     """Shortcut: Get team performance on specific maps"""
     return get_team_game_statistics(
         team_id,
-        map_ids=map_ids,
+        map_name_contains_or_eq=map_name_contains_or_eq,
         time_window="LAST_3_MONTHS"
     )
 
 
 if __name__ == '__main__':
     # Test: Team stats with a time window
-    team_stats = get_team_statistics(team_id="1079", time_window="LAST_3_MONTHS")
+    team_stats = get_team_statistics(team_id="1079", time_window="LAST_6_MONTHS")
     print(f"Team aggregationSeriesIds count: {len(team_stats.get('aggregationSeriesIds'))}")
     print(f"Team stats games count: {team_stats.get('game', {}).get('count')}")
 
     # Test: Team game stats (map-specific)
-    # team_game_stats = get_team_game_statistics(
-    #     team_id="1079",
-    #     time_window="LAST_MONTH",
-    #     limit=30
-    # )
-    # print(f"Team game stats count: {team_game_stats.get('count')}")
-    # #
-    # # # Test: Player stats
-    # player_stats = get_player_statistics(player_id="2512", time_window="LAST_6_MONTHS")
-    # print(f"Player series count: {player_stats.get('series', {}).get('count')}")
+    team_game_stats = get_team_game_statistics(
+        team_id="1079",
+        time_window="LAST_YEAR",
+        limit=30,
+        opponent_team_ids=["79", "94"]
+    )
+    print(f"Team game stats count: {team_game_stats.get('count')}")
+
+    # Test: Player stats
+    player_stats = get_player_statistics(player_id="2512", time_window="LAST_6_MONTHS")
+    print(f"Player series count: {player_stats.get('series', {}).get('count')}")
