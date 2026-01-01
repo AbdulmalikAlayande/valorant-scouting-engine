@@ -1,0 +1,92 @@
+query GetSeriesState($id: ID!) {
+    seriesState(id: $id) {
+        id
+        format
+        started
+        finished
+        valid
+        teams {
+            id
+            name
+            score
+            won
+            kills
+            weaponKills {
+                id
+                weaponName
+                count
+            }
+            teamkills
+            teamkillAssistsGiven
+            teamkillAssistsReceivedFromPlayer {
+                id
+                playerId
+                teamkillAssistsReceived
+            }
+            weaponTeamkills {
+                id
+                weaponName
+                count
+            }
+            selfkills
+            deaths
+            structuresDestroyed
+            structuresCaptured
+            objectives {
+                id
+                type
+                completionCount
+            }
+            multikills {
+                id
+                numberOfKills
+                count
+            }
+            players {
+                id
+                name
+                kills
+                deaths
+
+            }
+        }
+        games {
+            id
+            sequenceNumber
+            started
+            paused
+            finished
+            map {
+                name
+                bounds {
+                    min {
+                        x
+                        y
+                    }
+                    max {
+                        x
+                        y
+                    }
+                }
+            }
+            teams {
+                name
+                side
+                won
+                score
+                players {
+                    name
+                    kills
+                    deaths
+                    character { name }
+                    netWorth
+                    money
+                    position {
+                        x
+                        y
+                    }
+                }
+            }
+        }
+    }
+}
