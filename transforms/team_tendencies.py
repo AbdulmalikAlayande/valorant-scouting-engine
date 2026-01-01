@@ -1,5 +1,8 @@
 from models.report import AgentPick, MapPerformance
+from models.teams import Team, TeamStats
+from models.stats import SideStats, ObjectiveStats, BaseGameStats, TeamGameStatistics, TeamStatistics, WinStreak
 from typing import Dict, Any, List
+
 
 def analyze_team_stats(stats_data: Dict[str, Any]) -> Dict[str, Any]:
     """

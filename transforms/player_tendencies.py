@@ -1,9 +1,8 @@
 from typing import Dict, Any, List
+from models.stats import SideStats, ObjectiveStats, BaseGameStats, TeamGameStatistics, TeamStatistics, WinStreak
 
 def analyze_player_stats(player_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Transforms raw GRID playerStatistics into a structured format for player tendencies.
-    """
+
     player_stats = player_data.get("playerStatistics", {})
     if not player_stats:
         return {}
