@@ -11,7 +11,7 @@ _logger = get_logger(__name__)
 
 def ingest_series_state(series_id: str) -> Dict[str, Any]:
     """
-    Fetch and normalize detailed series state (Series State API).
+    Fetch and normalize a detailed series state (Series State API).
 
     This module is primarily used to support:
     - agent picks / composition analysis (by game, by team)
@@ -143,7 +143,7 @@ def _safe_dict(value: Any) -> Dict[str, Any]:
 def _normalize_series_state(series_id: str, series_state: Dict[str, Any]) -> Dict[str, Any]:
     # series_state is the node returned by clients.domain.match.get_series_state
     # For our client it returns data.get("series", {}) but the actual Series State
-    # API query returns a "seriesState" node. We defensively accept either.
+    # API query returns a "seriesState" node. We defensively accept either of them.
     series_node = _safe_dict(series_state.get("seriesState") or series_state)
 
     teams = _normalize_series_teams(_safe_list(series_node.get("teams")))
