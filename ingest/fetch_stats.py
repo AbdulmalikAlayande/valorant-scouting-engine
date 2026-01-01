@@ -394,7 +394,7 @@ def _parse_duration_to_seconds(duration_str: str) -> float:
 
 
 def ingest_team_game_statistics(
-        team_id: str, time_window: str, map_filter: Optional[str] = None
+        team_id: str, time_window: str, map_filter: Optional[Dict[str, str]] = None, opponent_team_ids: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
     Fetch per-game/map statistics for a team in a time window. Use for map
@@ -407,6 +407,7 @@ def ingest_team_game_statistics(
         team_id: Team ID
         time_window: "LAST_MONTH", "LAST_3_MONTHS", "LAST_6_MONTHS", "LAST_YEAR"
         map_filter: Optional map ID to filter by specific map
+        opponent_team_ids: Optional list of opponent team IDs to filter by specific opponent teams
 
     Returns:
         Dict[str, Any]: Normalized dict with game-level stats and metadata
@@ -421,14 +422,14 @@ def ingest_team_game_statistics(
 
     try:
         # Call the actual API with map filter if provided
-        map_ids = [map_filter] if map_filter and map_filter.strip() else None
-        data = get_team_game_statistics(
+        game_stats = get_team_game_statistics(
             team_id=team_id,
             time_window=time_window,
-            map_ids=map_ids
+            map_name_contains_or_eq=map_filter if map_filter else None,
+            opponent_team_ids=opponent_team_ids if opponent_team_ids else None
         )
 
-        if not data or not isinstance(data, dict):
+        if not game_stats:
             _logger.warning(f"No game statistics found for team {team_id} in {time_window}")
             return {
                 "team_id": team_id,
@@ -438,7 +439,6 @@ def ingest_team_game_statistics(
                 "meta": {"kind": "team_game", "status": "no_data"}
             }
 
-        game_stats = data.get("teamGameStatistics", {})
         if not isinstance(game_stats, dict):
             _logger.warning(f"Invalid game statistics structure for team {team_id}")
             return {
@@ -764,3 +764,8 @@ def ingest_player_statistics(player_id: str, time_window: str) -> Dict[str, Any]
             "records": [],
             "meta": {"kind": "player_statistics", "status": "error", "error": str(e)},
         }
+
+
+if __name__ == '__main__':
+    result = ingest_team_game_statistics("1079", time_window="LAST_6_MONTHS", opponent_team_ids=["79", "94"])
+    print(result)
