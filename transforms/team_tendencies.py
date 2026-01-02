@@ -1,8 +1,6 @@
 from typing import Any
 
 import pandas as pd
-from ingest.fetch_stats import ingest_team_statistics, ingest_team_game_statistics
-from ingest.fetch_series import ingest_team_recent_series, ingest_series_by_time_range
 from config.globalutilitylogger import get_logger
 
 _logger = get_logger(__name__)
@@ -135,8 +133,3 @@ def detect_strategic_trends(team_series_data: dict):
         "win_streak": (form[::-1] + ["L"]).index("L") if "L" in form else len(form),
         "loss_streak": (form[::-1] + ["W"]).index("W") if "W" in form else len(form)
     }
-
-
-if __name__ == '__main__':
-    statistics = ingest_team_game_statistics(team_id="1079", time_window="LAST_YEAR")
-    calculate_win_rates(statistics)
