@@ -4,6 +4,7 @@ from config.globalutilitylogger import get_logger
 
 _logger = get_logger(__name__)
 
+
 def aggregate_player_performance(player_stats_list: List[Dict[str, Any]]) -> pd.DataFrame:
     """
     Business Value: Identifies the "star" players and the "weak links".
@@ -19,15 +20,15 @@ def aggregate_player_performance(player_stats_list: List[Dict[str, Any]]) -> pd.
         # Expecting normalized data from ingest/fetch_stats.py:ingest_player_statistics
         if "records" in player_data and player_data["records"]:
             record = player_data["records"][0]
-            
+
             # Extract metrics from normalized structure
             combat = record.get("combat", {})
             kills = combat.get("kills", {}).get("total", 0)
             deaths = combat.get("deaths", {}).get("total", 0)
-            
+
             # Calculate K/D ratio
             kd = round(kills / deaths, 2) if deaths > 0 else float(kills)
-            
+
             player_summary = {
                 "player_id": record.get("player_id"),
                 "total_games": record.get("games", {}).get("count", 0),
@@ -42,6 +43,7 @@ def aggregate_player_performance(player_stats_list: List[Dict[str, Any]]) -> pd.
 
     return pd.DataFrame(records)
 
+
 def map_player_to_agents(player_stats_list: List[Dict[str, Any]]) -> Dict[str, List[str]]:
     """
     Business Value: Critical for prepping counters (e.g., "Ban Jett if TenZ plays it").
@@ -49,26 +51,27 @@ def map_player_to_agents(player_stats_list: List[Dict[str, Any]]) -> Dict[str, L
     Why: Helps coaches understand the opponent's agent pool depth.
     """
     signature_agents = {}
-    
+
     for player_data in player_stats_list:
         player_id = player_data.get("player_id")
         raw_data = player_data.get("records", [{}])[0].get("raw", {})
-        
+
         # In GRID Stats Feed, character picks are often in game.players.characters
         # However, the normalized ingestion might already have top_agents if we add it there.
         # For now, we'll look into the raw 'game' data if available
         game_data = raw_data.get("game", {})
         characters = game_data.get("players", {}).get("characters", [])
-        
+
         picks = []
         for char in characters:
             agent_name = char.get("character", {}).get("name")
             if agent_name:
                 picks.append(agent_name)
-        
-        signature_agents[player_id] = picks[:3] # Top 3 agents
+
+        signature_agents[player_id] = picks[:3]  # Top 3 agents
 
     return signature_agents
+
 
 def identify_high_impact_threats(player_metrics: pd.DataFrame) -> List[str]:
     """
@@ -80,7 +83,7 @@ def identify_high_impact_threats(player_metrics: pd.DataFrame) -> List[str]:
         return []
 
     threats = []
-    
+
     # 1. High K/D Threat
     high_kd = player_metrics[player_metrics['kd_ratio'] > 1.2]
     for _, row in high_kd.iterrows():
