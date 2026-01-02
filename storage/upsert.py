@@ -223,7 +223,7 @@ def create_report_request(team_id: str, team_name: str, time_window: str = "LAST
         return result['id']
 
 
-def update_report_request_status(request_id: int, status: str, error_message: str = None):
+def update_report_request_status(request_id: str, status: str, error_message: str = None):
     """
     Update the status of a report request.
 

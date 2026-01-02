@@ -18,7 +18,6 @@ class AgentPick:
     count: int
     percentage: float
 
-
 @dataclass
 class WinStreak:
     """Win streak information."""
