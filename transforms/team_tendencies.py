@@ -11,7 +11,7 @@ _logger = get_logger(__name__)
 def calculate_win_rates(team_game_stats: dict) -> pd.DataFrame:
     """
     Business Value: Determines map pool depth and comfort zones.
-    What: Computes overall win rate and map-specific win rates.
+    What: Computes overall win rate and map-specific win rates, including side dominance.
     Why: Vital for the "Map Performance" section of the report.
     """
     if not team_game_stats or "records" not in team_game_stats:
@@ -31,24 +31,25 @@ def calculate_win_rates(team_game_stats: dict) -> pd.DataFrame:
         return df
 
     # In professional scouting, we also look at side-dominance
-    # If we have attack/defense win rates in the record, we should keep them
+    # Calculate side-based performance if data is available
+    if 'attack_win_rate' in df.columns and 'defense_win_rate' in df.columns:
+        df['side_bias'] = df['attack_win_rate'] - df['defense_win_rate']
+        # Bias > 10% means Attack-heavy, < -10% means Defense-heavy
     
     return df
 
 def analyze_map_veto_strategy(map_stats: pd.DataFrame):
     """
     Business Value: Direct advice for the pick/ban phase.
-    What: Identifies the team's "Permaban" and "Stronghold".
+    What: Identifies the team's "Permaban" and "Stronghold" and generates insights.
     Why: Provides the first "Actionable Insight" for coaches.
     """
     if map_stats.empty:
-        return {"permaban": None, "stronghold": None}
+        return {"permaban": None, "stronghold": None, "insights": []}
+    
+    insights = []
     
     # Sort by play count and win rate
-    # Business logic: 
-    # - Stronghold must have at least 3 games played to be statistically significant
-    # - Permaban is the map with the lowest win rate among those played at least once
-    
     significant_maps = map_stats[map_stats['game_count'] >= 3]
     if significant_maps.empty:
         significant_maps = map_stats # Fallback to all maps
@@ -56,18 +57,31 @@ def analyze_map_veto_strategy(map_stats: pd.DataFrame):
     sorted_stats = significant_maps.sort_values(by=['game_win_rate', 'game_count'], ascending=False)
     
     stronghold = sorted_stats.iloc[0].to_dict() if not sorted_stats.empty else None
-    
+    if stronghold:
+        insights.append(f"✓ Stronghold: {stronghold['map_filter']} ({stronghold['game_win_rate']:.1f}% win rate over {stronghold['game_count']} games).")
+        if 'side_bias' in stronghold:
+            bias = stronghold['side_bias']
+            if bias > 10:
+                insights.append(f"  - Note: Highly dominant on Attack side for {stronghold['map_filter']}. Recommend picking Attack-heavy maps to counter.")
+            elif bias < -10:
+                insights.append(f"  - Note: Highly dominant on Defense side for {stronghold['map_filter']}. Recommend picking Defense-heavy maps to counter.")
+
     # Permaban: least games played or lowest win rate?
-    # Usually, a permaban is a map they AVOID, so low count is a signal,
-    # but if they play it and LOSE, it's also a permaban candidate.
     permaban_candidates = map_stats.sort_values(by=['game_win_rate', 'game_count'], ascending=True)
     permaban = permaban_candidates.iloc[0].to_dict() if not permaban_candidates.empty else None
+    if permaban:
+        insights.append(f"⚠ Permaban Candidate: {permaban['map_filter']} ({permaban['game_win_rate']:.1f}% win rate). Recommend picking against them here.")
+    
+    # Form Factor Insights (if map_stats contains recent form data)
+    # Note: strategic trends are handled by detect_strategic_trends, 
+    # but we could add a summary here if desired.
 
     return {
         "stronghold": stronghold.get("map_filter") if stronghold else None,
         "stronghold_wr": stronghold.get("game_win_rate") if stronghold else None,
         "permaban": permaban.get("map_filter") if permaban else None,
-        "permaban_wr": permaban.get("game_win_rate") if permaban else None
+        "permaban_wr": permaban.get("game_win_rate") if permaban else None,
+        "insights": insights
     }
 
 def detect_strategic_trends(team_series_data: dict):
