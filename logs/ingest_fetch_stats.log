@@ -1,0 +1,13 @@
+2026-01-01 17:05:38 - ingest.fetch_stats - INFO - No games found for team 1079 in LAST_YEAR
+2026-01-01 17:11:39 - ingest.fetch_stats - INFO - No games found for team 1079 in LAST_YEAR
+2026-01-01 21:49:47 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:39:10 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:45:11 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:45:50 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:46:25 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:46:56 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:47:56 - ingest.fetch_stats - ERROR - Failed to ingest game statistics for 1079 (LAST_YEAR): HTTPSConnectionPool(host='api-op.grid.gg', port=443): Max retries exceeded with url: /statistics-feed/graphql (Caused by NameResolutionError("HTTPSConnection(host='api-op.grid.gg', port=443): Failed to resolve 'api-op.grid.gg' ([Errno 11001] getaddrinfo failed)"))
+2026-01-01 22:48:51 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:49:51 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:52:33 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
+2026-01-01 22:53:21 - ingest.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_YEAR): 50 games, 56.0% win rate
