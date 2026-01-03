@@ -2,6 +2,13 @@ from pathlib import Path
 import dj_database_url
 from config.environment import env
 
+GEMINI_API_KEY = env.str("GEMINI_API_KEY", default="")
+GEMINI_MODEL = env.str("GEMINI_MODEL", default="gemini-3-flash")
+GEMINI_API_BASE_URL = env.str(
+    "GEMINI_API_BASE_URL",
+    default="https://generativelanguage.googleapis.com/v1beta",
+)
+
 
 GRID_API_KEY = env.str("GRID_API_KEY")
 GRID_QUERY_API_URL = env.str("GRID_QUERY_API")

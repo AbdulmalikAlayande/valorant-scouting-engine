@@ -10,6 +10,7 @@ requests = "*"
 dj-database-url = "*"
 environs = "*"
 pydantic = "*"
+google-genai = "*"
 
 [dev-packages]
 
