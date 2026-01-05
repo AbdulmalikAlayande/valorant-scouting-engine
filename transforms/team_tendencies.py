@@ -1,135 +1,325 @@
-from typing import Any
+"""
+Extracts team-level metrics for Macro and Mid-Game analysis.
 
-import pandas as pd
+Each function is MODULAR - does ONE thing, returns a consistent structure.
+Can be used by multiple handlers (full report, map analysis, etc.)
+"""
+
+from typing import Dict, Any
+
 from config.globalutilitylogger import get_logger
 
 _logger = get_logger(__name__)
 
 
-def calculate_win_rates(team_game_stats: dict) -> pd.DataFrame:
+# ============================================================================
+# MACRO-LEVEL ANALYSIS (Pre-Game Strategy)
+# ============================================================================
+
+def extract_pistol_round_wr(team_stats: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Business Value: Determines map pool depth and comfort zones.
-    What: Computes overall win rate and map-specific win rates, including side dominance.
-    Why: Vital for the "Map Performance" section of the report.
+    Extract pistol round win rate by attack/defense.
+
+    NOTE: GRID Stats Feed API doesn't provide pistol-specific data.
+    We use segment data (attack/defense) as a proxy for now.
+
+    Args:
+        team_stats: Output from ingest_team_statistics()
+
+    Returns:
+        {
+            "overall": 0.65,  # Not available - using game_win_rate
+            "attack": 0.58,
+            "defense": 0.72,
+            "data_quality": "proxy"  # Flag that this isn't true pistol data
+        }
     """
-    if not team_game_stats or "records" not in team_game_stats:
-        _logger.warning("No team game stats records provided.")
-        return pd.DataFrame()
+    if not team_stats or not team_stats.get('records'):
+        _logger.warning("No team stats records provided for pistol round analysis")
+        return {
+            "overall": 0.0,
+            "attack": 0.0,
+            "defense": 0.0,
+            "data_quality": "missing"
+        }
 
-    records = team_game_stats.get("records", [])
-    if not records:
-        return pd.DataFrame()
+    record = team_stats['records'][0]
 
-    # Create a DataFrame from the records
-    df = pd.DataFrame(records)
-    
-    # We want to ensure we have a 'game_win_rate' column
-    if 'game_win_rate' not in df.columns:
-        _logger.warning("Column 'game_win_rate' missing from game stats records.")
-        return df
-
-    # In professional scouting, we also look at side-dominance
-    # Calculate side-based performance if data is available
-    if 'attack_win_rate' in df.columns and 'defense_win_rate' in df.columns:
-        df['side_bias'] = df['attack_win_rate'] - df['defense_win_rate']
-        # Bias > 10% means Attack-heavy, < -10% means Defense-heavy
-    
-    return df
-
-def analyze_map_veto_strategy(map_stats: pd.DataFrame):
-    """
-    Business Value: Direct advice for the pick/ban phase.
-    What: Identifies the team's "Permaban" and "Stronghold" and generates insights.
-    Why: Provides the first "Actionable Insight" for coaches.
-    """
-    if map_stats.empty:
-        return {"permaban": None, "stronghold": None, "insights": []}
-    
-    insights = []
-    
-    # Sort by play count and win rate
-    significant_maps = map_stats[map_stats['game_count'] >= 3]
-    if significant_maps.empty:
-        significant_maps = map_stats # Fallback to all maps
-        
-    sorted_stats = significant_maps.sort_values(by=['game_win_rate', 'game_count'], ascending=False)
-    
-    stronghold = sorted_stats.iloc[0].to_dict() if not sorted_stats.empty else None
-    if stronghold:
-        insights.append(f"✓ Stronghold: {stronghold['map_filter']} ({stronghold['game_win_rate']:.1f}% win rate over {stronghold['game_count']} games).")
-        if 'side_bias' in stronghold:
-            bias = stronghold['side_bias']
-            if bias > 10:
-                insights.append(f"  - Note: Highly dominant on Attack side for {stronghold['map_filter']}. Recommend picking Attack-heavy maps to counter.")
-            elif bias < -10:
-                insights.append(f"  - Note: Highly dominant on Defense side for {stronghold['map_filter']}. Recommend picking Defense-heavy maps to counter.")
-
-    # Permaban: least games played or lowest win rate?
-    permaban_candidates = map_stats.sort_values(by=['game_win_rate', 'game_count'], ascending=True)
-    permaban = permaban_candidates.iloc[0].to_dict() if not permaban_candidates.empty else None
-    if permaban:
-        insights.append(f"⚠ Permaban Candidate: {permaban['map_filter']} ({permaban['game_win_rate']:.1f}% win rate). Recommend picking against them here.")
-    
-    # Form Factor Insights (if map_stats contains recent form data)
-    # Note: strategic trends are handled by detect_strategic_trends, 
-    # but we could add a summary here if desired.
-
+    # GRID doesn't provide pistol-specific data
+    # Using attack/defense win rates as proxy
     return {
-        "stronghold": stronghold.get("map_filter") if stronghold else None,
-        "stronghold_wr": stronghold.get("game_win_rate") if stronghold else None,
-        "permaban": permaban.get("map_filter") if permaban else None,
-        "permaban_wr": permaban.get("game_win_rate") if permaban else None,
-        "insights": insights
+        "overall": record.get('game_win_rate', 0.0) / 100,  # Convert percentage to decimal
+        "attack": record.get('attack_win_rate', 0.0) / 100,
+        "defense": record.get('defense_win_rate', 0.0) / 100,
+        "data_quality": "proxy",  # Flag for future improvement
+        "note": "Using attack/defense WR as proxy - GRID doesn't provide pistol-specific data"
     }
 
-def detect_strategic_trends(team_series_data: dict):
+
+def calculate_overall_win_rates(team_stats: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Business Value: Understanding current momentum (Form Factor).
-    What: Analyzes match history to find win/loss streaks and form.
-    Why: Helps coaches understand if the opponent is peaking or crashing.
+    Calculate overall performance metrics.
+
+    Args:
+        team_stats: Output from ingest_team_statistics()
+
+    Returns:
+        {
+            "series": {"count": 10, "won": 7, "win_rate": 0.70},
+            "games": {"count": 25, "won": 18, "win_rate": 0.72},
+            "current_streak": {"type": "win", "count": 3}
+        }
     """
-    if not team_series_data or "series" not in team_series_data:
-        return {"momentum": "unknown", "recent_form": []}
+    if not team_stats or not team_stats.get('records'):
+        _logger.warning("No team stats records for win rate calculation")
+        return {
+            "series": {"count": 0, "won": 0, "win_rate": 0.0},
+            "games": {"count": 0, "won": 0, "win_rate": 0.0},
+            "current_streak": {"type": "none", "count": 0}
+        }
 
-    series_list = team_series_data.get("series", [])
-    if not series_list:
-        return {"momentum": "unknown", "recent_form": []}
-
-    df = pd.DataFrame(series_list)
-    # Sort by time
-    df['start_time'] = pd.to_datetime(df['start_time'])
-    df = df.sort_values('start_time', ascending=True)
-
-    # Calculate form (last 5 games)
-    recent_series = df.tail(5)
-    
-    # Extract 'W' or 'L' based on the 'won' status in series teams
-    form = []
-    team_id = team_series_data.get("team_id")
-    
-    for _, row in recent_series.iterrows():
-        teams = row.get("teams", [])
-        for t in teams:
-            if t.get("team_id") == team_id:
-                form.append("W" if t.get("won") else "L")
-                break
-
-    # Determine momentum
-    momentum = "stable"
-    if len(form) >= 3:
-        if all(x == "W" for x in form[-3:]):
-            momentum = "hot"
-        elif all(x == "L" for x in form[-3:]):
-            momentum = "cold"
-    elif len(form) > 0:
-        if form[-1] == "W":
-            momentum = "rising"
-        else:
-            momentum = "shaky"
+    record = team_stats['records'][0]
 
     return {
-        "momentum": momentum,
-        "recent_form": form,
-        "win_streak": (form[::-1] + ["L"]).index("L") if "L" in form else len(form),
-        "loss_streak": (form[::-1] + ["W"]).index("W") if "W" in form else len(form)
+        "series": {
+            "count": record.get('total_series', 0),
+            "won": record.get('series_won', 0),
+            "win_rate": record.get('series_win_rate', 0.0) / 100
+        },
+        "games": {
+            "count": record.get('total_games', 0),
+            "won": record.get('games_won', 0),
+            "win_rate": record.get('game_win_rate', 0.0) / 100
+        },
+        "current_streak": {
+            "type": "win" if record.get('win_streak_current', 0) > 0 else "loss",
+            "count": abs(record.get('win_streak_current', 0)),
+            "max": record.get('win_streak_max', 0)
+        }
+    }
+
+
+# ============================================================================
+# MID-GAME ANALYSIS (Execution & Tendencies)
+# ============================================================================
+
+def extract_side_balance(team_stats: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Analyze attack vs defense performance.
+    Answers: "Do they favor attacking or defending?"
+
+    Args:
+        team_stats: Output from ingest_team_statistics()
+
+    Returns:
+        {
+            "attack": {
+                "rounds": 120,
+                "wins": 54,
+                "win_rate": 0.45
+            },
+            "defense": {
+                "rounds": 130,
+                "wins": 91,
+                "win_rate": 0.70
+            },
+            "bias": "defense",  # "attack", "defense", or "balanced"
+            "bias_strength": 0.25  # Difference in win rates
+        }
+    """
+    if not team_stats or not team_stats.get('records'):
+        _logger.warning("No team stats records for side balance analysis")
+        return {
+            "attack": {"rounds": 0, "wins": 0, "win_rate": 0.0},
+            "defense": {"rounds": 0, "wins": 0, "win_rate": 0.0},
+            "bias": "unknown",
+            "bias_strength": 0.0
+        }
+
+    record = team_stats['records'][0]
+
+    attack_rounds = record.get('attack_rounds', 0)
+    attack_wins = record.get('attack_wins', 0)
+    attack_wr = record.get('attack_win_rate', 0.0) / 100
+
+    defense_rounds = record.get('defense_rounds', 0)
+    defense_wins = record.get('defense_wins', 0)
+    defense_wr = record.get('defense_win_rate', 0.0) / 100
+
+    # Determine bias (>10% difference is significant)
+    bias_strength = abs(attack_wr - defense_wr)
+
+    if bias_strength < 0.10:
+        bias = "balanced"
+    elif attack_wr > defense_wr:
+        bias = "attack"
+    else:
+        bias = "defense"
+
+    return {
+        "attack": {
+            "rounds": attack_rounds,
+            "wins": attack_wins,
+            "win_rate": attack_wr
+        },
+        "defense": {
+            "rounds": defense_rounds,
+            "wins": defense_wins,
+            "win_rate": defense_wr
+        },
+        "bias": bias,
+        "bias_strength": round(bias_strength, 3)
+    }
+
+
+def extract_objective_control(team_stats: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract spike plant/defuse success rates.
+    Answers: "How good are they at objectives?"
+
+    Args:
+        team_stats: Output from ingest_team_statistics()
+
+    Returns:
+        {
+            "spike_plants": {
+                "avg_per_game": 4.2,
+                "total": 105
+            },
+            "spike_defuses": {
+                "avg_per_game": 1.8,
+                "total": 45
+            },
+            "bomb_explosions": {
+                "avg_per_game": 2.1,
+                "total": 52
+            },
+            "plant_success_rate": 0.49  # explosions / plants
+        }
+    """
+    if not team_stats or not team_stats.get('records'):
+        _logger.warning("No team stats records for objective control analysis")
+        return {
+            "spike_plants": {"avg_per_game": 0.0, "total": 0},
+            "spike_defuses": {"avg_per_game": 0.0, "total": 0},
+            "bomb_explosions": {"avg_per_game": 0.0, "total": 0},
+            "plant_success_rate": 0.0
+        }
+
+    record = team_stats['records'][0]
+    total_games = record.get('total_games', 1)  # Avoid division by zero
+
+    plants_avg = record.get('spikes_planted_avg', 0.0)
+    defuses_avg = record.get('spikes_defused_avg', 0.0)
+    explosions_avg = record.get('bomb_explosions_avg', 0.0)
+
+    # Calculate totals (avg * games)
+    plants_total = int(plants_avg * total_games)
+    explosions_total = int(explosions_avg * total_games)
+
+    # Plant success rate = explosions / plants
+    plant_success_rate = (explosions_total / plants_total) if plants_total > 0 else 0.0
+
+    return {
+        "spike_plants": {
+            "avg_per_game": round(plants_avg, 2),
+            "total": plants_total
+        },
+        "spike_defuses": {
+            "avg_per_game": round(defuses_avg, 2),
+            "total": int(defuses_avg * total_games)
+        },
+        "bomb_explosions": {
+            "avg_per_game": round(explosions_avg, 2),
+            "total": explosions_total
+        },
+        "plant_success_rate": round(plant_success_rate, 3)
+    }
+
+
+def extract_combat_metrics(team_stats: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract team-level combat performance.
+
+    Args:
+        team_stats: Output from ingest_team_statistics()
+
+    Returns:
+        {
+            "kd_ratio": 1.24,
+            "kills_per_game": 13.2,
+            "deaths_per_game": 10.6,
+            "first_bloods_pct": 0.58  # % of games they got first kill
+        }
+    """
+    if not team_stats or not team_stats.get('records'):
+        _logger.warning("No team stats records for combat metrics")
+        return {
+            "kd_ratio": 0.0,
+            "kills_per_game": 0.0,
+            "deaths_per_game": 0.0,
+            "first_bloods_pct": 0.0
+        }
+
+    record = team_stats['records'][0]
+
+    return {
+        "kd_ratio": record.get('kd_ratio', 0.0),
+        "kills_per_game": record.get('kills_avg', 0.0),
+        "deaths_per_game": record.get('deaths_avg', 0.0),
+        "first_bloods_pct": record.get('first_bloods_percentage', 0.0) / 100
+    }
+
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+def validate_team_stats_input(team_stats: Dict[str, Any]) -> bool:
+    """
+    Validate that team_stats has the expected structure.
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not team_stats:
+        _logger.error("team_stats is None")
+        return False
+
+    if not isinstance(team_stats, dict):
+        _logger.error(f"team_stats is not a dict: {type(team_stats)}")
+        return False
+
+    if 'records' not in team_stats:
+        _logger.error("team_stats missing 'records' key")
+        return False
+
+    if not team_stats['records']:
+        _logger.error("team_stats 'records' is empty")
+        return False
+
+    return True
+
+
+def get_team_analysis_summary(team_stats: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convenience function: Get ALL team-level metrics in one call.
+    Used by Full Scouting Report handler.
+
+    Args:
+        team_stats: Output from ingest_team_statistics()
+
+    Returns:
+        Dict containing all team analysis metrics
+    """
+    if not validate_team_stats_input(team_stats):
+        _logger.error("Invalid team_stats input")
+        return {}
+
+    return {
+        "win_rates": calculate_overall_win_rates(team_stats),
+        "pistol_rounds": extract_pistol_round_wr(team_stats),
+        "side_balance": extract_side_balance(team_stats),
+        "objective_control": extract_objective_control(team_stats),
+        "combat_metrics": extract_combat_metrics(team_stats)
     }
