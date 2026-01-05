@@ -16,8 +16,8 @@ from ingestion.fetch_teams import ingest_team_by_name, ingest_team_by_id, ingest
 from ingestion.fetch_head_to_head import ingest_head_to_head_matches
 
 from transforms.insight_generator import generate_how_to_win, format_actionable_bullets
-from transforms.player_tendencies import aggregate_player_performance, identify_high_impact_threats, map_player_to_agents
-from transforms.team_tendencies import calculate_win_rates, analyze_map_veto_strategy, detect_strategic_trends
+from transforms.player_analysis import aggregate_player_performance, identify_high_impact_threats, map_player_to_agents
+from transforms.team_analysis import calculate_win_rates, analyze_map_veto_strategy, detect_strategic_trends
 
 _logger = get_logger(__name__)
 

@@ -4,7 +4,7 @@ from transforms.insight_generator import generate_how_to_win, format_actionable_
 def test_insight_generator():
     print("Testing Insight Generator...")
 
-    # Mock team analysis (from team_tendencies.py output)
+    # Mock team analysis (from team_analysis.py output)
     team_analysis = {
         "stronghold": "Ascent",
         "permaban": "Icebox",
@@ -15,7 +15,7 @@ def test_insight_generator():
         ]
     }
 
-    # Mock player threats (from player_tendencies.py output)
+    # Mock player threats (from player_analysis.py output)
     player_threats = [
         "🔥 High Frag Threat: Player 2512 (K/D: 1.33)",
         "⚡ Aggressive Opener: Player 2512 (First Blood: 25.0%)",

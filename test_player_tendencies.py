@@ -1,6 +1,6 @@
 
 import pandas as pd
-from transforms.player_tendencies import (
+from transforms.player_analysis import (
     aggregate_player_performance, 
     map_player_to_agents, 
     identify_high_impact_threats

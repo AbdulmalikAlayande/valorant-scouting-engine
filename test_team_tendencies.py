@@ -1,6 +1,6 @@
 
 import pandas as pd
-from transforms.team_tendencies import calculate_win_rates, analyze_map_veto_strategy, detect_strategic_trends
+from transforms.team_analysis import calculate_win_rates, analyze_map_veto_strategy, detect_strategic_trends
 
 def test_team_tendencies():
     print("Testing Team Tendencies...")
