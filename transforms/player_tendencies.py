@@ -185,7 +185,7 @@ def extract_agent_pools(player_stats_list: List[Dict[str, Any]]) -> List[Dict[st
                     {"agent": "Reyna", "games": 5, "percentage": 0.20}
                 ],
                 "agent_pool_size": 2,
-                "specialist": True  # True if >70% on one agent
+                "specialist": True # True if >70% on one agent
             },
             ...
         ]
@@ -217,7 +217,8 @@ def extract_agent_pools(player_stats_list: List[Dict[str, Any]]) -> List[Dict[st
             "top_agents": [],  # Need to parse from raw data
             "agent_pool_size": 0,
             "specialist": False,
-            "note": "Agent pool extraction needs raw data parsing"
+            "note": "Agent pool extraction needs raw data parsing",
+            "game_data": game_data if game_data else {}
         })
 
     return player_agent_pools
