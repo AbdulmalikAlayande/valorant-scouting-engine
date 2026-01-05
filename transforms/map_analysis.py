@@ -1,11 +1,6 @@
 """
-Map Analysis Transform Module
-==============================
 Extracts map-specific performance metrics for veto strategy.
-
 Answers: "Which maps should we ban/pick?"
-
-Author: Systems Engineer
 """
 
 from typing import Dict, Any, List, Optional
