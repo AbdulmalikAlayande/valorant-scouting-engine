@@ -33,7 +33,7 @@ def test_team_analysis():
 
     # Fetch data
     print("Fetching team statistics...")
-    team_stats = ingest_team_statistics(team_id="1079", time_window="LAST_3_MONTHS")
+    team_stats = ingest_team_statistics(team_id="1079", time_window="LAST_6_MONTHS")
 
     # Run analysis
     print("Running team analysis...")
@@ -64,7 +64,7 @@ def test_map_analysis():
     print("Fetching team game statistics...")
     team_game_stats = ingest_team_game_statistics(
         team_id="1079",
-        time_window="LAST_3_MONTHS"
+        time_window="LAST_6_MONTHS"
     )
 
     # Run analysis
@@ -100,7 +100,7 @@ def test_player_analysis():
     print("Fetching player statistics...")
     player_stats = ingest_player_statistics(
         player_id="2512",
-        time_window="LAST_3_MONTHS"
+        time_window="LAST_6_MONTHS"
     )
 
     # Run analysis
