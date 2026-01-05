@@ -226,7 +226,8 @@ def _parse_iso_datetime(value: str) -> Optional[datetime]:
         if v.endswith("Z"):
             v = v[:-1] + "+00:00"
         return datetime.fromisoformat(v)
-    except Exception:
+    except Exception as ex:
+        _logger.error(f"Failed to parse ISO datetime {value}: {ex}")
         return None
 
 

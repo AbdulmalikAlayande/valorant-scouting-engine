@@ -17,7 +17,7 @@ def aggregate_player_performance(player_stats_list: List[Dict[str, Any]]) -> pd.
 
     records = []
     for player_data in player_stats_list:
-        # Expecting normalized data from ingest/fetch_stats.py:ingest_player_statistics
+        # Expecting normalized data from ingestion/fetch_stats.py:ingest_player_statistics
         if "records" in player_data and player_data["records"]:
             record = player_data["records"][0]
 

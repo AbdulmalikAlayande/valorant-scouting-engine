@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from storage.upsert import create_report_request
 from storage.db import test_connection, get_db_cursor
-from jobs.generate_report import process_request
+from jobs.report_generator import process_request
 import json
 
 def verify_flow():

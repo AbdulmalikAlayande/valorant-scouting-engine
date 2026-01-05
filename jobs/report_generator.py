@@ -1,15 +1,19 @@
 import time
 from typing import Dict, Any, List
 from config.globalutilitylogger import get_logger
+from jobs.prompt_router import GeneralPromptRouter
 from storage.db import get_db_cursor
 from storage.upsert import update_report_request_status, upsert_scouting_report
-from models.report import ScoutingReport, AgentPick, MapPerformance, PlayerStat
+from models.report import (
+    ScoutingReport, AgentPick, MapPerformance, PlayerStat, 
+    TeamComposition, HeadToHeadMatchup
+)
 
-from ingest.fetch_match_details import ingest_game_details, ingest_series_state
-from ingest.fetch_stats import ingest_team_statistics, ingest_team_game_statistics, ingest_player_statistics
-from ingest.fetch_series import ingest_team_recent_series, ingest_series_by_time_range
-from ingest.fetch_teams import ingest_team_by_name, ingest_team_by_id, ingest_team_players
-from ingest.fetch_head_to_head import ingest_head_to_head_matches
+from ingestion.fetch_match_details import ingest_game_details, ingest_series_state
+from ingestion.fetch_stats import ingest_team_statistics, ingest_team_game_statistics, ingest_player_statistics
+from ingestion.fetch_series import ingest_team_recent_series, ingest_series_by_time_range
+from ingestion.fetch_teams import ingest_team_by_name, ingest_team_by_id, ingest_team_players
+from ingestion.fetch_head_to_head import ingest_head_to_head_matches
 
 from transforms.insight_generator import generate_how_to_win, format_actionable_bullets
 from transforms.player_tendencies import aggregate_player_performance, identify_high_impact_threats, map_player_to_agents
@@ -17,7 +21,7 @@ from transforms.team_tendencies import calculate_win_rates, analyze_map_veto_str
 
 _logger = get_logger(__name__)
 
-def poll_and_process_jobs():
+def poll_and_process_jobs() -> None:
     """
     What: The main entry point that runs in a loop.
     Why: It checks the report_requests table for pending status, marks them as processing, and triggers the workflow.
@@ -34,14 +38,16 @@ def poll_and_process_jobs():
         Exception: If an error occurs during job processing.
     """
     _logger.info("Starting Python Analysis Worker polling loop...")
+
     while True:
         try:
             with get_db_cursor() as cursor:
                 cursor.execute("SELECT id, team_id, time_window FROM report_requests WHERE status = 'pending' LIMIT 1")
                 job = cursor.fetchone()
-
             if job:
                 _logger.info(f"Picking up job {job['id']} for team {job['team_id']}")
+                router = GeneralPromptRouter()
+                router.resolve_user_prompt("")
                 execute_report_workflow(job['id'], job['team_id'], job['time_window'])
 
             time.sleep(5)
@@ -50,7 +56,7 @@ def poll_and_process_jobs():
             time.sleep(10)
 
 
-def execute_report_workflow(request_id, team_id, time_window: str):
+def execute_report_workflow(request_id, team_id, time_window: str) -> Dict[str, Any]:
     """
     What: Orchestrates the data fetching and transformation.
     Why: Separates the polling logic from the actual execution. It will call the ingestion layer to get raw data and the transforms layer to process it.
@@ -73,7 +79,7 @@ def execute_report_workflow(request_id, team_id, time_window: str):
             required conditions for the report generation workflow.
 
     Returns:
-        dict: A dictionary containing the result of the workflow execution, such as
+        Dict[str, Any]: A dictionary containing the result of the workflow execution, such as
             the status of the report generation and potentially any relevant metadata.
     """
 
@@ -140,9 +146,12 @@ def execute_report_workflow(request_id, team_id, time_window: str):
         _logger.error(f"Workflow failed for request {request_id}: {ex}")
         update_report_request_status(request_id, 'failed', error_message=str(ex))
 
+def execute_report_workflow_for_player(request_id, player_id, time_window: str) -> Dict[str, Any]:
+    pass
 
-def finalize_report(request_id, report_data):
+def finalize_report(request_id, report_data) -> ScoutingReport:
     """
     What: Converts the final analysis into a ScoutingReport model and saves it to the scouting_reports table.
-    Why: Ensures that the results are persisted and the job status is updated to completed.
+    Why: Ensures that the results are persisted and the job status is updated to 'completed'.
     """
+    pass

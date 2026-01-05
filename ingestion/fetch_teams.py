@@ -40,7 +40,15 @@ def ingest_team_by_name(team_name: str) -> Team:
                         "id": (node.get("title") or {}).get("id"),
                         "name": (node.get("title") or {}).get("name"),
                     },
-                    "dataProvider": (node.get("externalLinks") or {}).get("dataProvider", {}).get("name"),
+                    "dataProvider": next(
+                        (
+                            (link.get("dataProvider") or {}).get("name")
+                            for link in node.get("externalLinks") or []
+                            if "riot esports api"
+                            in ((link.get("dataProvider") or {}).get("description") or "").lower()
+                        ),
+                        None,
+                    ),
                     "organizationId": (node.get("organization") or {}).get("id"),
                     "organizationName": (node.get("organization") or {}).get("name"),
                     "raw": node,

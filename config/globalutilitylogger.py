@@ -75,7 +75,7 @@ def get_logger(name: str) -> logging.Logger:
     """
     Get or create a named logger for a module/component. Automatically
     configures root logger on first call. Use __name__ as the name param
-    to automatically namespace by module path (e.g., 'ingest.fetch_teams').
+    to automatically namespace by module path (e.g., 'ingestion.fetch_teams').
     """
     if not _configured:
         configure_root_logger()

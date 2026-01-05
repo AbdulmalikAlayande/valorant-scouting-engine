@@ -59,3 +59,13 @@
 2026-01-02 03:31:12 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
 2026-01-02 03:33:41 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
 2026-01-02 03:34:38 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-05 16:34:28 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-05 16:34:37 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-05 16:34:40 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-05 16:51:14 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-05 16:51:24 - ingestion.fetch_stats - INFO - Successfully ingested team statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-05 16:51:29 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 5 games, 80.0% win rate
+2026-01-05 16:51:32 - ingestion.fetch_teams - INFO - Team lookup: id='79' name='Cloud9' name_shortened='C9' logo_url='https://cdn.grid.gg/assets/team-logos/62118a302ef0900c7e7cc7b52eb2ca49' color_primary='#0072c3' data_provider='VALORANT' organization_id='1' organization_name='Cloud9'
+2026-01-05 16:51:37 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
+2026-01-05 16:51:40 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-05 16:51:42 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
