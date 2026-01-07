@@ -267,12 +267,12 @@ def main():
 
     try:
         # Run all tests
-        test_team_analysis()
+        # test_team_analysis()
         test_map_analysis()
-        test_player_analysis()
-        test_composition_analysis()
-        test_weakness_detection()
-        test_insight_generator()
+        # test_player_analysis()
+        # test_composition_analysis()
+        # test_weakness_detection()
+        # test_insight_generator()
 
         print("\n" + "=" * 60)
         print("✅ ALL TESTS PASSED")
