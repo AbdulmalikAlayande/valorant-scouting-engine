@@ -1,0 +1,2 @@
+2026-01-05 16:51:32 - ingestion.fetch_teams - INFO - Team lookup: id='79' name='Cloud9' name_shortened='C9' logo_url='https://cdn.grid.gg/assets/team-logos/62118a302ef0900c7e7cc7b52eb2ca49' color_primary='#0072c3' data_provider='VALORANT' organization_id='1' organization_name='Cloud9'
+2026-01-05 18:22:33 - ingestion.fetch_teams - INFO - Team lookup: id='79' name='Cloud9' name_shortened='C9' logo_url='https://cdn.grid.gg/assets/team-logos/62118a302ef0900c7e7cc7b52eb2ca49' color_primary='#0072c3' data_provider='VALORANT' organization_id='1' organization_name='Cloud9'

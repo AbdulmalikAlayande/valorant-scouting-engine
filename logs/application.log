@@ -69,3 +69,168 @@
 2026-01-05 16:51:37 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
 2026-01-05 16:51:40 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
 2026-01-05 16:51:42 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-05 18:16:31 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-05 18:16:40 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-05 18:16:40 - transforms.team_analysis - ERROR - team_stats 'records' is empty
+2026-01-05 18:16:40 - transforms.team_analysis - ERROR - Invalid team_stats input
+2026-01-05 18:22:18 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-05 18:22:27 - ingestion.fetch_stats - INFO - Successfully ingested team statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-05 18:22:30 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 5 games, 80.0% win rate
+2026-01-05 18:22:33 - ingestion.fetch_teams - INFO - Team lookup: id='79' name='Cloud9' name_shortened='C9' logo_url='https://cdn.grid.gg/assets/team-logos/62118a302ef0900c7e7cc7b52eb2ca49' color_primary='#0072c3' data_provider='VALORANT' organization_id='1' organization_name='Cloud9'
+2026-01-05 18:22:38 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
+2026-01-05 18:22:40 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-05 18:22:43 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-05 18:22:59 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-05 18:23:07 - ingestion.fetch_stats - INFO - Successfully ingested team statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-05 18:23:10 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-05 18:23:10 - transforms.map_analysis - WARNING - No team game stats for map win rate calculation
+2026-01-05 18:23:10 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-05 18:23:16 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
+2026-01-05 18:23:16 - transforms.player_analysis - WARNING - No valid player data for star identification
+2026-01-05 18:23:16 - transforms.player_analysis - WARNING - No valid player data for weak link identification
+2026-01-05 18:23:18 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-05 18:23:20 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-05 18:23:29 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-05 18:23:32 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-05 18:23:32 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-05 18:23:32 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-05 18:23:32 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-05 18:23:32 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-05 18:23:32 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-05 18:23:41 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-05 18:23:44 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-05 18:23:49 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
+2026-01-05 18:23:52 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-05 18:23:55 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-05 18:23:55 - transforms.team_analysis - ERROR - team_stats 'records' is empty
+2026-01-05 18:23:55 - transforms.team_analysis - ERROR - Invalid team_stats input
+2026-01-05 18:23:55 - transforms.map_analysis - WARNING - No team game stats for map win rate calculation
+2026-01-05 18:23:55 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-05 18:23:55 - transforms.player_analysis - WARNING - No valid player data for star identification
+2026-01-05 18:23:55 - transforms.player_analysis - WARNING - No valid player data for weak link identification
+2026-01-05 18:23:55 - transforms.composition_analysis - WARNING - No series state data for composition extraction
+2026-01-05 18:23:55 - transforms.composition_analysis - WARNING - No series state data for agent pick rates
+2026-01-05 18:23:55 - transforms.composition_analysis - WARNING - No series state data for synergy analysis
+2026-01-05 18:23:55 - transforms.composition_analysis - WARNING - No series state data for map-specific comps
+2026-01-05 18:23:55 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-05 18:23:55 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-05 18:23:55 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-05 18:23:55 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-05 18:23:55 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-05 18:23:55 - transforms.insight_generator - INFO - Generating 'How to Win' insights
+2026-01-05 23:18:51 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-05 23:19:06 - ingestion.fetch_stats - INFO - Successfully ingested team statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-05 23:19:18 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-05 23:19:18 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-05 23:19:24 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_6_MONTHS)
+2026-01-05 23:19:26 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-05 23:19:31 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-05 23:19:40 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-05 23:19:42 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-05 23:19:42 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-05 23:19:42 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-05 23:19:42 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-05 23:19:42 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-05 23:19:43 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-05 23:19:51 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-05 23:19:58 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-05 23:20:04 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
+2026-01-05 23:20:07 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-05 23:20:10 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-05 23:20:10 - transforms.team_analysis - ERROR - team_stats 'records' is empty
+2026-01-05 23:20:10 - transforms.team_analysis - ERROR - Invalid team_stats input
+2026-01-05 23:20:10 - transforms.map_analysis - WARNING - No team game stats for map win rate calculation
+2026-01-05 23:20:10 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-05 23:20:10 - transforms.player_analysis - WARNING - No valid player data for star identification
+2026-01-05 23:20:10 - transforms.player_analysis - WARNING - No valid player data for weak link identification
+2026-01-05 23:20:10 - transforms.composition_analysis - WARNING - No series state data for composition extraction
+2026-01-05 23:20:10 - transforms.composition_analysis - WARNING - No series state data for agent pick rates
+2026-01-05 23:20:10 - transforms.composition_analysis - WARNING - No series state data for synergy analysis
+2026-01-05 23:20:10 - transforms.composition_analysis - WARNING - No series state data for map-specific comps
+2026-01-05 23:20:10 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-05 23:20:10 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-05 23:20:10 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-05 23:20:10 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-05 23:20:10 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-05 23:20:10 - transforms.insight_generator - INFO - Generating 'How to Win' insights
+2026-01-06 00:08:26 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-06 00:08:34 - ingestion.fetch_stats - INFO - Successfully ingested team statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-06 00:08:38 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-06 00:08:38 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-06 00:08:44 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_6_MONTHS)
+2026-01-06 00:08:46 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-06 00:08:49 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-06 00:08:57 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-06 00:09:00 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-06 00:09:00 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-06 00:09:00 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-06 00:09:00 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-06 00:09:00 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-06 00:09:00 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-06 00:09:08 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-06 00:09:11 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-06 00:09:16 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
+2026-01-06 00:09:18 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-06 00:09:21 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-06 00:09:21 - transforms.team_analysis - ERROR - team_stats 'records' is empty
+2026-01-06 00:09:21 - transforms.team_analysis - ERROR - Invalid team_stats input
+2026-01-06 00:09:21 - transforms.map_analysis - WARNING - No team game stats for map win rate calculation
+2026-01-06 00:09:21 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-06 00:09:21 - transforms.player_analysis - WARNING - No valid player data for star identification
+2026-01-06 00:09:21 - transforms.player_analysis - WARNING - No valid player data for weak link identification
+2026-01-06 00:09:21 - transforms.composition_analysis - WARNING - No series state data for composition extraction
+2026-01-06 00:09:21 - transforms.composition_analysis - WARNING - No series state data for agent pick rates
+2026-01-06 00:09:21 - transforms.composition_analysis - WARNING - No series state data for synergy analysis
+2026-01-06 00:09:21 - transforms.composition_analysis - WARNING - No series state data for map-specific comps
+2026-01-06 00:09:21 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-06 00:09:21 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-06 00:09:21 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-06 00:09:21 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-06 00:09:21 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-06 00:09:21 - transforms.insight_generator - INFO - Generating 'How to Win' insights
+2026-01-06 09:32:14 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-06 09:32:16 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-06 09:32:18 - ingestion.fetch_match_details - WARNING - No series state found for series_id: 2629392
+2026-01-06 09:55:54 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-06 09:55:56 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-06 09:56:00 - ingestion.fetch_match_details - INFO - Ingested series state series_id=2629392: teams=2, games=2
+2026-01-06 10:33:22 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-06 10:33:31 - ingestion.fetch_stats - INFO - Successfully ingested team statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-06 10:33:42 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-06 10:33:42 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-06 10:33:53 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_6_MONTHS)
+2026-01-06 10:33:57 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-06 10:34:01 - ingestion.fetch_match_details - INFO - Ingested series state series_id=2629392: teams=2, games=2
+2026-01-06 10:34:09 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-06 10:34:11 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-06 10:34:11 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-06 10:34:11 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-06 10:34:11 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-06 10:34:11 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-06 10:34:11 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-06 10:34:19 - ingestion.fetch_stats - WARNING - No statistics found for team 1079 in LAST_3_MONTHS
+2026-01-06 10:34:22 - ingestion.fetch_stats - INFO - No games found for team 1079 in LAST_3_MONTHS
+2026-01-06 10:34:28 - ingestion.fetch_stats - INFO - Ingested player statistics for 2512 (LAST_3_MONTHS)
+2026-01-06 10:34:30 - ingestion.fetch_series - INFO - Ingested 1 series for team 1079
+2026-01-06 10:34:34 - ingestion.fetch_match_details - INFO - Ingested series state series_id=2629392: teams=2, games=2
+2026-01-06 10:34:34 - transforms.team_analysis - ERROR - team_stats 'records' is empty
+2026-01-06 10:34:34 - transforms.team_analysis - ERROR - Invalid team_stats input
+2026-01-06 10:34:34 - transforms.map_analysis - WARNING - No team game stats for map win rate calculation
+2026-01-06 10:34:34 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-06 10:34:34 - transforms.player_analysis - WARNING - No valid player data for star identification
+2026-01-06 10:34:34 - transforms.player_analysis - WARNING - No valid player data for weak link identification
+2026-01-06 10:34:34 - transforms.weakness_detection - WARNING - No team game stats for early aggression detection
+2026-01-06 10:34:34 - transforms.weakness_detection - WARNING - No team game stats for economy pattern detection
+2026-01-06 10:34:34 - transforms.weakness_detection - WARNING - No team game stats for objective weakness detection
+2026-01-06 10:34:34 - transforms.weakness_detection - WARNING - No team stats for side weakness detection
+2026-01-06 10:34:34 - transforms.weakness_detection - WARNING - No team stats for consistency detection
+2026-01-06 10:34:34 - transforms.insight_generator - INFO - Generating 'How to Win' insights
+2026-01-06 10:39:45 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-06 10:39:49 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-06 10:39:49 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-06 15:25:29 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-06 15:25:36 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-06 15:25:36 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy
+2026-01-06 15:26:32 - root - INFO - Logging configured: level=INFO, log_dir=C:\Users\HP\PycharmProjects\scouting-tool\logs
+2026-01-06 15:26:35 - ingestion.fetch_stats - INFO - Successfully ingested game statistics for 1079 (LAST_6_MONTHS): 33 games, 57.6% win rate
+2026-01-06 15:26:35 - transforms.map_analysis - WARNING - No map win rates provided for veto strategy

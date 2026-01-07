@@ -1,0 +1,237 @@
+{
+  "default_comps": [
+    {
+      "composition": [
+        "cypher",
+        "omen",
+        "raze",
+        "skye",
+        "viper"
+      ],
+      "games": 1,
+      "wins": 0,
+      "maps": [
+        "split"
+      ],
+      "win_rate": 0.0,
+      "note": "Win rate calculation requires game outcome data"
+    },
+    {
+      "composition": [
+        "breach",
+        "omen",
+        "raze",
+        "skye",
+        "viper"
+      ],
+      "games": 1,
+      "wins": 0,
+      "maps": [
+        "split"
+      ],
+      "win_rate": 0.0,
+      "note": "Win rate calculation requires game outcome data"
+    },
+    {
+      "composition": [
+        "jett",
+        "kay/o",
+        "killjoy",
+        "omen",
+        "sova"
+      ],
+      "games": 1,
+      "wins": 0,
+      "maps": [
+        "ascent"
+      ],
+      "win_rate": 0.0,
+      "note": "Win rate calculation requires game outcome data"
+    }
+  ],
+  "agent_pick_rates": [
+    {
+      "agent": "omen",
+      "games": 4,
+      "pick_rate": 0.2
+    },
+    {
+      "agent": "viper",
+      "games": 3,
+      "pick_rate": 0.15
+    },
+    {
+      "agent": "raze",
+      "games": 2,
+      "pick_rate": 0.1
+    },
+    {
+      "agent": "skye",
+      "games": 2,
+      "pick_rate": 0.1
+    },
+    {
+      "agent": "breach",
+      "games": 2,
+      "pick_rate": 0.1
+    },
+    {
+      "agent": "kay/o",
+      "games": 2,
+      "pick_rate": 0.1
+    },
+    {
+      "agent": "cypher",
+      "games": 1,
+      "pick_rate": 0.05
+    },
+    {
+      "agent": "killjoy",
+      "games": 1,
+      "pick_rate": 0.05
+    },
+    {
+      "agent": "jett",
+      "games": 1,
+      "pick_rate": 0.05
+    },
+    {
+      "agent": "sova",
+      "games": 1,
+      "pick_rate": 0.05
+    },
+    {
+      "agent": "phoenix",
+      "games": 1,
+      "pick_rate": 0.05
+    }
+  ],
+  "agent_synergies": [
+    {
+      "agent_pair": [
+        "omen",
+        "viper"
+      ],
+      "games_together": 3,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "omen",
+        "raze"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "omen",
+        "skye"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "raze",
+        "skye"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "raze",
+        "viper"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "skye",
+        "viper"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "breach",
+        "omen"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "breach",
+        "viper"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "kay/o",
+        "omen"
+      ],
+      "games_together": 2,
+      "synergy_score": 1.0
+    },
+    {
+      "agent_pair": [
+        "cypher",
+        "omen"
+      ],
+      "games_together": 1,
+      "synergy_score": 1.0
+    }
+  ],
+  "map_specific_comps": {
+    "split": [
+      {
+        "composition": [
+          "cypher",
+          "omen",
+          "raze",
+          "skye",
+          "viper"
+        ],
+        "games": 1
+      },
+      {
+        "composition": [
+          "breach",
+          "omen",
+          "raze",
+          "skye",
+          "viper"
+        ],
+        "games": 1
+      }
+    ],
+    "ascent": [
+      {
+        "composition": [
+          "jett",
+          "kay/o",
+          "killjoy",
+          "omen",
+          "sova"
+        ],
+        "games": 1
+      },
+      {
+        "composition": [
+          "breach",
+          "kay/o",
+          "omen",
+          "phoenix",
+          "viper"
+        ],
+        "games": 1
+      }
+    ]
+  }
+}

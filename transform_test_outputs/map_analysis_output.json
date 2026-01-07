@@ -1,0 +1,15 @@
+{
+  "map_win_rates": [],
+  "veto_strategy": {
+    "stronghold": null,
+    "permaban": null,
+    "playable_maps": [],
+    "avoid_maps": []
+  },
+  "map_pool_depth": {
+    "competitive_maps": 0,
+    "total_maps_played": 0,
+    "pool_depth": "unknown",
+    "one_trick_risk": true
+  }
+}

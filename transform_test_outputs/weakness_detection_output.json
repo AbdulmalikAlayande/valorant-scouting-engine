@@ -1,0 +1,40 @@
+{
+  "early_aggression": {
+    "first_blood_rate": 0.0,
+    "aggression_level": "unknown",
+    "exploitable": false,
+    "counter_strategy": "Insufficient data"
+  },
+  "economy_patterns": {
+    "avg_money": 0.0,
+    "avg_net_worth": 0.0,
+    "economy_style": "unknown",
+    "force_buy_tendency": "unknown",
+    "exploitable": false,
+    "counter_strategy": "Insufficient data"
+  },
+  "objective_weaknesses": {
+    "plant_success_rate": 0.0,
+    "defuse_success_rate": 0.0,
+    "plant_weakness": false,
+    "defuse_weakness": false,
+    "counter_strategies": []
+  },
+  "side_weaknesses": {
+    "weak_side": "unknown",
+    "attack_wr": 0.0,
+    "defense_wr": 0.0,
+    "weakness_severity": "unknown",
+    "counter_strategy": "Insufficient data"
+  },
+  "consistency_issues": {
+    "current_streak": {
+      "type": "none",
+      "count": 0
+    },
+    "max_streak": 0,
+    "consistency": "unknown",
+    "exploitable": false,
+    "counter_strategy": "Insufficient data"
+  }
+}
