@@ -44,6 +44,8 @@ def calculate_map_win_rates(team_game_stats: Dict[str, Any]) -> List[Dict[str, A
     # I need to handle both cases, And I did that by filtering out records missing 'map_filter' as they represent global
     # aggregates rather than specific map data.
 
+    print("AT calc_map_win_rates: team_game_stats 👇")
+    print(team_game_stats)
     records = team_game_stats['records']
     map_stats = []
 
@@ -255,7 +257,8 @@ def get_map_analysis_summary(team_game_stats: Dict[str, Any]) -> Dict[str, Any]:
         Dict containing all map analysis metrics
     """
     map_win_rates = calculate_map_win_rates(team_game_stats)
-
+    print("Map win rates: 👇👍")
+    print(map_win_rates)
     return {
         "map_win_rates": map_win_rates,
         "veto_strategy": identify_veto_strategy(map_win_rates),
