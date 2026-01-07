@@ -41,6 +41,8 @@ def ingest_team_recent_series(team_id: str, limit: int = 50) -> Dict[str, Any]:
 
         normalized_series = []
         for series in series_list:
+            print(":"*50)
+            print(series.get("id", None))
             normalized_series.append(
                 {
                     "series_id": series.get("id"),
