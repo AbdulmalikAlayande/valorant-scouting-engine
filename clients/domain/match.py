@@ -13,7 +13,6 @@ def get_series_state(series_id: str) -> Dict[str, Any]:
     query = load_graphql_query("seriesstate")
 
     variables = {"id": series_id}
-
     client = GraphQLClient(base_url=GRID_SERIES_STATE_API_URL, api_key=GRID_API_KEY)
     data = client.execute(query=query, variables=variables)
 
@@ -22,9 +21,9 @@ def get_series_state(series_id: str) -> Dict[str, Any]:
     with open(response_file, "w") as f:
         json.dump(data, f, indent=4)
 
-    return data.get("series", {})
+    return data
 
 
 if __name__ == "__main__":
-    series_state = get_series_state(series_id="2629390")
+    series_state = get_series_state(series_id="2629392")
     print(series_state)
