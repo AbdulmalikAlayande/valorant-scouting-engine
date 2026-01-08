@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/storage/scripts.sql" value="5ad0bb2b-f2ae-48a6-b873-8d5929989673" />
+    <file url="file://$PROJECT_DIR$/storage/upsert.py" value="5ad0bb2b-f2ae-48a6-b873-8d5929989673" />
+  </component>
+</project>
