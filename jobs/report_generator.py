@@ -1,59 +1,121 @@
 import time
-from typing import Dict, Any, List
+import asyncio
+from typing import Dict, Any, Optional
 from config.globalutilitylogger import get_logger
 from jobs.prompt_router import GeneralPromptRouter
 from storage.db import get_db_cursor
-from storage.upsert import update_report_request_status, upsert_scouting_report
-from models.report import (
-    ScoutingReport, AgentPick, MapPerformance, PlayerStat, 
-    TeamComposition, HeadToHeadMatchup
-)
-
-from ingestion.fetch_match_details import ingest_game_details, ingest_series_state
-from ingestion.fetch_stats import ingest_team_statistics, ingest_team_game_statistics, ingest_player_statistics
-from ingestion.fetch_series import ingest_team_recent_series, ingest_series_by_time_range
-from ingestion.fetch_teams import ingest_team_by_name, ingest_team_by_id, ingest_team_players
-from ingestion.fetch_head_to_head import ingest_head_to_head_matches
-
-from transforms.insight_generator import generate_how_to_win, format_actionable_bullets
-from transforms.player_analysis import aggregate_player_performance, identify_high_impact_threats, map_player_to_agents
-from transforms.team_analysis import calculate_win_rates, analyze_map_veto_strategy, detect_strategic_trends
+from storage.upsert import update_report_request_status, upsert_scouting_report, create_report_request
+from models.report import ScoutingReport
 
 _logger = get_logger(__name__)
 
-def poll_and_process_jobs() -> None:
+
+async def poll_and_process_reports() -> None:
     """
-    What: The main entry point that runs in a loop.
-    Why: It checks the report_requests table for pending status, marks them as processing, and triggers the workflow.
+    Main entry point for the Python Analysis Worker.
 
-    #Main loop for the Python worker.
+    What: Continuously polls the report_requests table for pending natural language prompts,
+          routes them through the LLM-powered router, and executes the appropriate handler.
 
-    Polls and processes jobs from the job queue (report_requests table with status = 'pending').
+    Why: This is the bridge between the database job queue and the LLM-powered analysis system.
+         It replaces the old rule-based routing with intelligent prompt understanding.
 
-    This function continuously polls for any pending jobs in the job queue and processes
-    them according to predefined logic. It serves as the main entry point for handling
-    job processing in the system.
+    Architecture Flow:
+        1. Poll database for pending report requests
+        2. Extract the natural language prompt from the request
+        3. Use GeneralPromptRouter (LLM-powered) to determine the right tool/handler
+        4. Execute the handler function (which calls ingestion + transform layers)
+        5. Store results back to database
+        6. Update request status to 'completed' or 'failed'
 
     Raises:
-        Exception: If an error occurs during job processing.
+        Exception: Logs error and continues polling (resilient design)
     """
-    _logger.info("Starting Python Analysis Worker polling loop...")
+    _logger.info("🚀 Starting Python Analysis Worker with LLM-powered routing...")
+
+    # Initialize the router once (reuse across iterations)
+    router = GeneralPromptRouter()
 
     while True:
         try:
+            # Poll for pending jobs
             with get_db_cursor() as cursor:
-                cursor.execute("SELECT id, team_id, time_window FROM report_requests WHERE status = 'pending' LIMIT 1")
+                cursor.execute("""
+                               SELECT id, user_prompt, created_at
+                               FROM report_requests
+                               WHERE status = 'pending'
+                               ORDER BY created_at ASC
+                               LIMIT 1
+                               """)
                 job = cursor.fetchone()
-            if job:
-                _logger.info(f"Picking up job {job['id']} for team {job['team_id']}")
-                router = GeneralPromptRouter()
-                router.resolve_user_prompt("")
-                execute_report_workflow(job['id'], job['team_id'], job['time_window'])
 
-            time.sleep(5)
+            if job:
+                request_id = job['id']
+                user_prompt = job['user_prompt']
+
+                _logger.info(f"📋 Picked up job {request_id}: '{user_prompt}'")
+
+                # Mark as processing
+                update_report_request_status(request_id, 'processing')
+
+                try:
+                    # Route the prompt through LLM and execute handler
+                    _logger.info(f"🧠 Routing prompt through LLM...")
+                    result = await router.resolve_user_prompt(user_prompt)
+
+                    # Extract the structured report from result
+                    if result and isinstance(result, dict):
+                        report_data = result.get('output') or result.get('response')
+
+                        if report_data and isinstance(report_data, dict):
+                            # Store the report
+                            report_data['report_request_id'] = request_id
+                            upsert_scouting_report(report_data)
+
+                            # Mark as completed
+                            update_report_request_status(request_id, 'completed')
+                            _logger.info(f"✅ Job {request_id} completed successfully")
+                        else:
+                            raise ValueError("Handler returned invalid report structure")
+                    else:
+                        raise ValueError("Router returned invalid result")
+
+                except Exception as handler_error:
+                    # Handler failed - mark as failed with error message
+                    error_msg = str(handler_error)
+                    _logger.error(f"❌ Job {request_id} failed: {error_msg}")
+                    update_report_request_status(request_id, 'failed', error_message=error_msg)
+
+            else:
+                # No pending jobs - wait before polling again
+                _logger.debug("No pending jobs, sleeping...")
+
+            # Poll every 5 seconds
+            await asyncio.sleep(5)
+
         except Exception as ex:
-            _logger.error(f"Error processing job: {ex}")
-            time.sleep(10)
+            _logger.error(f"💥 Error in polling loop: {ex}", exc_info=True)
+            # Sleep longer on error to avoid hammering the database
+            await asyncio.sleep(10)
+
+
+def start_worker():
+    """
+    Synchronous wrapper to start the async polling loop.
+
+    Usage:
+        python -m jobs.report_generator
+    """
+    _logger.info("🎬 Starting Python Analysis Worker...")
+
+    try:
+        # Run the async polling loop
+        asyncio.run(poll_and_process_reports())
+    except KeyboardInterrupt:
+        _logger.info("⏹️  Worker stopped by user")
+    except Exception as e:
+        _logger.error(f"💀 Worker crashed: {e}", exc_info=True)
+        raise
 
 
 def execute_report_workflow(request_id, team_id, time_window: str) -> Dict[str, Any]:
@@ -82,71 +144,6 @@ def execute_report_workflow(request_id, team_id, time_window: str) -> Dict[str, 
         Dict[str, Any]: A dictionary containing the result of the workflow execution, such as
             the status of the report generation and potentially any relevant metadata.
     """
-
-    try:
-        # The Ingestion Layer:
-        _logger.info(f"Ingesting data for team {team_id}...")
-        team_info = ingest_team_by_id(team_id=team_id)
-        team_stats = ingest_team_statistics(team_id=team_id, time_window=time_window)
-        team_game_stats = ingest_team_game_statistics(team_id=team_id, time_window=time_window)
-        team_recent_series = ingest_team_recent_series(team_id=team_id)
-        team_roster = ingest_team_players(team_id=team_id)
-
-        # Ingesting Individual Player Statistics
-        player_performances = []
-        for player in team_roster.get("players", []):
-            player_stats = ingest_player_statistics(player_id=player.get("id"), time_window=time_window)
-            player_stats.update(
-                {
-                    "team_id": team_id,
-                    "team_name": team_info.get("name", "Unknown Team")
-                }
-            )
-            player_performances.append(PlayerStat(player_id=player.get("id"), **player_stats))
-
-        # The Transformation Layer:
-        _logger.info("Running analysis transformations...")
-        map_dataframe = calculate_win_rates(team_game_stats=team_game_stats)
-        map_veto_data = analyze_map_veto_strategy(map_stats=map_dataframe)
-        strategic_trends = detect_strategic_trends(team_recent_series)
-
-        player_dataframe = aggregate_player_performance(player_performances)
-        player_threats = identify_high_impact_threats(player_dataframe)
-        player_agents = map_player_to_agents(player_performances)
-
-        # The Actionable Insights Generation Layer
-        _logger.info("Generating actionable insights...")
-        raw_insights = generate_how_to_win(map_veto_data, player_threats)
-        final_actionable_insights = format_actionable_bullets(raw_insights)
-
-        # Report Finalization and Persistence
-        _logger.info("Finalizing report and persisting results...")
-        report_data = {
-            "report_request_id": request_id,
-            "team_id": team_id,
-            "team_name": team_info.name,
-            "total_matches": team_stats['records'][0]['total_series'],
-            "win_rate": team_stats['records'][0]['game_win_rate'],
-            "current_streak": strategic_trends['win_streak'],
-            "top_agents": team_game_stats['records'][0]['top_agents'],
-            "map_performance": map_dataframe.to_dict(orient='records'),
-            "player_stats": player_dataframe.to_dict(orient='records'),
-            "actionable_insights": final_actionable_insights,
-            "time_window": time_window,
-            "map_veto_data": map_veto_data,
-            "strategic_trends": strategic_trends,
-            "player_agents": player_agents
-        }
-
-        upsert_scouting_report(report_data)
-        update_report_request_status(request_id, "completed")
-        _logger.info(f"Successfully completed report for request {request_id}")
-        finalize_report(request_id, report_data)
-    except Exception as ex:
-        _logger.error(f"Workflow failed for request {request_id}: {ex}")
-        update_report_request_status(request_id, 'failed', error_message=str(ex))
-
-def execute_report_workflow_for_player(request_id, player_id, time_window: str) -> Dict[str, Any]:
     pass
 
 def finalize_report(request_id, report_data) -> ScoutingReport:
@@ -155,3 +152,9 @@ def finalize_report(request_id, report_data) -> ScoutingReport:
     Why: Ensures that the results are persisted and the job status is updated to 'completed'.
     """
     pass
+
+
+if __name__ == '__main__':
+    request_id = create_report_request("Generate a full scouting report for NRG in the last 6 months")
+    print(f"Created request {request_id}")
+    start_worker()
