@@ -2,10 +2,12 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+
 class AgentPick(BaseModel):
     agent: str
     pick_count: int
     pick_rate: float
+
 
 class MapPerformance(BaseModel):
     map_filter: str
@@ -15,6 +17,7 @@ class MapPerformance(BaseModel):
     side_bias: float = 0.0
     game_win_rate: float
 
+
 class PlayerStat(BaseModel):
     player_id: str
     nickname: Optional[str] = None
@@ -23,17 +26,20 @@ class PlayerStat(BaseModel):
     avg_plants: float
     signature_agents: List[str] = Field(default_factory=list)
 
+
 class TeamComposition(BaseModel):
     lineup: List[str]
     win_rate: float
     game_count: int
+
 
 class HeadToHeadMatchup(BaseModel):
     opponent_id: str
     opponent_name: str
     total_series: int
     win_rate: float
-    recent_results: List[str] # ["W", "L", "W"]
+    recent_results: List[str]  # ["W", "L", "W"]
+
 
 class ScoutingReport(BaseModel):
     report_request_id: int
@@ -43,22 +49,22 @@ class ScoutingReport(BaseModel):
     total_games: int
     win_rate: float
     current_streak: int
-    
+
     # Core Analysis
     top_agents: List[AgentPick] = Field(default_factory=list)
     map_performance: List[MapPerformance] = Field(default_factory=list)
     player_stats: List[PlayerStat] = Field(default_factory=list)
-    
+
     # Advanced Analysis
     top_compositions: List[TeamComposition] = Field(default_factory=list)
     head_to_head: Optional[HeadToHeadMatchup] = None
-    
+
     # Insights
     actionable_insights: List[str] = Field(default_factory=list)
-    
+
     # Context
     time_window: str
-    report_type: str = "full" # full, map, tournament, etc.
+    report_type: str = "full"  # full, map, tournament, etc.
     metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
 
@@ -100,7 +106,3 @@ class ReportRequest(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
-
-    # Optional: Keep these for backwards compatibility, but they're not required anymore
-    team_id: Optional[str] = None
-    time_window: Optional[str] = None
