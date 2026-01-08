@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, Optional
 
 from config.globalutilitylogger import get_logger
@@ -232,3 +233,9 @@ def handle_exploit_specific_opponent_tell(opponent_name: str, tell_description: 
 
 def handle_time_period_analysis(period: str, player_name: Optional[str], team_name: Optional[str]):
     pass
+
+
+if __name__ == '__main__':
+    report = handle_generate_full_scouting_report("Team Liquid", 10, "LAST_6_MONTHS")
+    with open("test_report.json", "w") as f:
+        json.dump(report, f, indent=4)
