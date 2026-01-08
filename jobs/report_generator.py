@@ -31,13 +31,12 @@ async def poll_and_process_reports() -> None:
         Exception: Logs error and continues polling (resilient design)
     """
     _logger.info("🚀 Starting Python Analysis Worker with LLM-powered routing...")
-
-    # Initialize the router once (reuse across iterations)
     router = GeneralPromptRouter()
 
     while True:
         try:
             # Poll for pending jobs
+            _logger.info(f"Polling DB for pending jobs")
             with get_db_cursor() as cursor:
                 cursor.execute("""
                                SELECT id, user_prompt, created_at
@@ -84,7 +83,6 @@ async def poll_and_process_reports() -> None:
                     error_msg = str(handler_error)
                     _logger.error(f"Job {request_id} Failed: {error_msg}")
                     update_report_request_status(request_id, 'failed', error_message=error_msg)
-                    continue
             else:
                 _logger.debug("No pending jobs, sleeping...")
 
@@ -154,5 +152,9 @@ def finalize_report(request_id, report_data) -> ScoutingReport:
 
 if __name__ == '__main__':
     request_id_ = create_report_request("Generate a full scouting report for NRG in the last 6 months")
+    request_id_1 = create_report_request("Generate a full scouting report for Cloud9 in the last 10 matches")
+    request_id_2 = create_report_request("Scout Sentinels based on last 6 months")
+    request_id_3 = create_report_request("How do we beat Cloud9?")
+
     print(f"Created request {request_id_}")
     start_worker()
