@@ -1,5 +1,3 @@
-import os
-from pathlib import Path
 from contextlib import contextmanager
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -86,14 +84,11 @@ def test_connection():
 
 
 if __name__ == "__main__":
-    # Test connection when run directly
-    print("🔌 Testing database connection...")
+    print("Testing database connection...")
     test_connection()
 
-    # Optionally run migration
     from pathlib import Path
-
     migration_file = Path(__file__).parent.parent / "migrations" / "001_initial_schema.sql"
     if migration_file.exists():
-        print(f"\n📂 Running migration: {migration_file}")
+        print(f"\nRunning migration: {migration_file}")
         run_migration(str(migration_file))
