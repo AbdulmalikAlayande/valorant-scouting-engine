@@ -1,6 +1,5 @@
-import time
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from config.globalutilitylogger import get_logger
 from jobs.prompt_router import GeneralPromptRouter
 from storage.db import get_db_cursor
@@ -44,7 +43,7 @@ async def poll_and_process_reports() -> None:
                                SELECT id, user_prompt, created_at
                                FROM report_requests
                                WHERE status = 'pending'
-                               ORDER BY created_at ASC
+                               ORDER BY created_at
                                LIMIT 1
                                """)
                 job = cursor.fetchone()
@@ -53,14 +52,14 @@ async def poll_and_process_reports() -> None:
                 request_id = job['id']
                 user_prompt = job['user_prompt']
 
-                _logger.info(f"📋 Picked up job {request_id}: '{user_prompt}'")
+                _logger.info(f"Picked up job {request_id}: '{user_prompt}'")
 
                 # Mark as processing
                 update_report_request_status(request_id, 'processing')
 
                 try:
                     # Route the prompt through LLM and execute handler
-                    _logger.info(f"🧠 Routing prompt through LLM...")
+                    _logger.info(f"Routing prompt through LLM...")
                     result = await router.resolve_user_prompt(user_prompt)
 
                     # Extract the structured report from result
@@ -74,20 +73,18 @@ async def poll_and_process_reports() -> None:
 
                             # Mark as completed
                             update_report_request_status(request_id, 'completed')
-                            _logger.info(f"✅ Job {request_id} completed successfully")
+                            _logger.info(f"Job {request_id} completed successfully")
                         else:
                             raise ValueError("Handler returned invalid report structure")
                     else:
                         raise ValueError("Router returned invalid result")
 
                 except Exception as handler_error:
-                    # Handler failed - mark as failed with error message
                     error_msg = str(handler_error)
-                    _logger.error(f"❌ Job {request_id} failed: {error_msg}")
+                    _logger.error(f"Job {request_id} Failed: {error_msg}")
                     update_report_request_status(request_id, 'failed', error_message=error_msg)
-
+                    continue
             else:
-                # No pending jobs - wait before polling again
                 _logger.debug("No pending jobs, sleeping...")
 
             # Poll every 5 seconds
@@ -155,6 +152,6 @@ def finalize_report(request_id, report_data) -> ScoutingReport:
 
 
 if __name__ == '__main__':
-    request_id = create_report_request("Generate a full scouting report for NRG in the last 6 months")
-    print(f"Created request {request_id}")
+    request_id_ = create_report_request("Generate a full scouting report for NRG in the last 6 months")
+    print(f"Created request {request_id_}")
     start_worker()
