@@ -1,3 +1,4 @@
+from config.globalutilitylogger import get_logger
 from config.settings import GEMINI_MODEL, GEMINI_API_KEY
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
@@ -12,6 +13,8 @@ from jobs.handler_functions import (
     handle_generate_in_game_strategy_call, handle_exploit_specific_opponent_tell, handle_time_period_analysis,
     handle_generate_agent_performance_analysis
 )
+
+_logger = get_logger(__name__)
 
 popular_esports_teams = [
     "NRG", "Fnatic", "DRX", "G2 Esports", "Paper Rex", "MIBR", "Team Heretics", "Rex Regum Qeon",
@@ -223,4 +226,6 @@ class GeneralPromptRouter:
 
     async def resolve_user_prompt(self, user_prompt: str):
         result = await self.agent.run(user_prompt)
+        _logger.info(f"result.response: {result.response}")
+        _logger.info(f"result.output: {result.output}")
         return {"response": result.response, "output": result.output}
