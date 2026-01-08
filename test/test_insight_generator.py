@@ -34,5 +34,6 @@ def test_insight_generator():
     for i, insight in enumerate(final_report, 1):
         print(f"{i}. {insight}")
 
+
 if __name__ == "__main__":
     test_insight_generator()
