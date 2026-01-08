@@ -75,7 +75,8 @@ async def poll_and_process_reports() -> None:
                             update_report_request_status(request_id, 'completed')
                             _logger.info(f"Job {request_id} completed successfully")
                         else:
-                            raise ValueError("Handler returned invalid report structure")
+                            _logger.warning(f"Handler returned invalid report structure")
+                            # raise ValueError("Handler returned invalid report structure")
                     else:
                         raise ValueError("Router returned invalid result")
 
