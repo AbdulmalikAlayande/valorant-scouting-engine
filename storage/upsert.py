@@ -1,8 +1,10 @@
 # storage/upsert.py
+from config.globalutilitylogger import get_logger
 from storage.db import get_db_cursor
 from psycopg2.extras import Json
 from typing import Dict, Any
 
+_logger = get_logger(__name__)
 
 def upsert_team(team_id: str, team_name: str, **extra_fields):
     """
@@ -192,34 +194,31 @@ def upsert_scouting_report(report_data: Dict[str, Any]):
         return result['id']
 
 
-def create_report_request(team_id: str, team_name: str, time_window: str = "LAST_3_MONTHS"):
-    """
-    Create a new report generation request.
+# storage/upsert.py (UPDATE THIS FUNCTION)
 
-    Why this exists:
-    - This is how Java triggers Python
-    - Java inserts row here
-    - Python polls for 'pending' status
+def create_report_request(user_prompt: str) -> int:
+    """
+    Create a new report generation request with a natural language prompt.
 
     Args:
-        team_id: GRID team ID
-        team_name: Team name
-        time_window: Time range for analysis
+        user_prompt: Natural language prompt (e.g., "How does Team Liquid perform on Ascent?")
 
     Returns:
-        request_id (for tracking)
+        request_id for tracking
 
     Usage:
-        request_id = create_report_request("53625", "Team Liquid")
+        request_id = create_report_request("Generate scouting report for Team Liquid")
     """
     with get_db_cursor() as cursor:
         cursor.execute("""
-                       INSERT INTO report_requests (team_id, team_name, time_window, status)
-                       VALUES (%s, %s, %s, 'pending')
+                       INSERT INTO report_requests (user_prompt, status)
+                       VALUES (%s, 'pending')
                        RETURNING id
-                       """, (team_id, team_name, time_window))
+                       """, (user_prompt,))
 
         result = cursor.fetchone()
+        _logger.info(f"Report creation result: {result}")
+        _logger.info(f"Report creation result ID: {result['id']}")
         return result['id']
 
 
@@ -261,12 +260,12 @@ if __name__ == "__main__":
     team_id = upsert_team("53625", "Team Liquid", logo_url="https://example.com/logo.png")
     print(f"✅ Team inserted/updated with ID: {team_id}")
 
-    # Test 2: Create a report request
-    print("\n2. Testing create_report_request...")
-    request_id = create_report_request("53625", "Team Liquid")
-    print(f"✅ Report request created with ID: {request_id}")
-
-    # Test 3: Update status
-    print("\n3. Testing update_report_request_status...")
-    update_report_request_status(request_id, 'processing')
-    print(f"✅ Status updated to 'processing'")
+    # # Test 2: Create a report request
+    # print("\n2. Testing create_report_request...")
+    # request_id = create_report_request("53625", "Team Liquid")
+    # print(f"✅ Report request created with ID: {request_id}")
+    #
+    # # Test 3: Update status
+    # print("\n3. Testing update_report_request_status...")
+    # update_report_request_status(request_id, 'processing')
+    # print(f"✅ Status updated to 'processing'")
