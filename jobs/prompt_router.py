@@ -32,7 +32,7 @@ valorant_maps = [
 class ScoutingReportTool(BaseModel):
     """Generates a full scouting report for a team."""
     team_name: str = Field(..., description=f"The name of the esports team (e.g., 'NRG', 'Team Liquid', 'Sentinels' e.t.c)")
-    match_count: int = Field(10, description="Number of recent matches to analyze")
+    match_count: Optional[int] = Field(10, description="Number of recent matches to analyze")
     time_window: str = Field("LAST_3_MONTHS", description="Time period: 'LAST_MONTH', 'LAST_3_MONTHS', or 'LAST_YEAR'")
 
 class PlayerAnalysisTool(BaseModel):
@@ -54,7 +54,7 @@ class TeamHeadToHeadAnalysisTool(BaseModel):
     team_name_1: str = Field(..., description="The name of the first esports team")
     team_name_2: str = Field(..., description="The name of the second esports team")
     match_count: int = Field(10, description="Number of recent matches to analyze")
-    time_window: str = Field("LAST_3_MONTHS", description="Time period: 'LAST_MONTH', 'LAST_3_MONTHS', 'LAST_6_MONTHS', or 'LAST_YEAR'")
+    time_window: str = Field("LAST_6_MONTHS", description="Time period: 'LAST_MONTH', 'LAST_3_MONTHS', 'LAST_6_MONTHS', or 'LAST_YEAR'")
 
 class PlayerHeadToHeadAnalysisTool(BaseModel):
     """Analyzes a player's performance against another player."""
