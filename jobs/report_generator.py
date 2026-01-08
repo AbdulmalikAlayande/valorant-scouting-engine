@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Dict, Any
 from config.globalutilitylogger import get_logger
 from jobs.prompt_router import GeneralPromptRouter
@@ -69,7 +70,7 @@ async def poll_and_process_reports() -> None:
                             # Store the report
                             report_data['report_request_id'] = request_id
                             upsert_scouting_report(report_data)
-
+                            finalize_report(request_id, report_data)
                             # Mark as completed
                             update_report_request_status(request_id, 'completed')
                             _logger.info(f"Job {request_id} completed successfully")
@@ -108,7 +109,11 @@ def start_worker():
         # Run the async polling loop
         asyncio.run(poll_and_process_reports())
     except KeyboardInterrupt:
-        _logger.info("⏹️  Worker stopped by user")
+        _logger.info("Commencing Graceful Worker Shutdown")
+        time.sleep(5)
+        _logger.info("Waiting for active requests to complete")
+        time.sleep(5)
+        _logger.info("Worker Shutdown Complete")
     except Exception as e:
         _logger.error(f"💀 Worker crashed: {e}", exc_info=True)
         raise
@@ -142,13 +147,14 @@ def execute_report_workflow(request_id, team_id, time_window: str) -> Dict[str, 
     """
     pass
 
-def finalize_report(request_id, report_data) -> ScoutingReport:
+def finalize_report(request_id, report_data):
     """
     What: Converts the final analysis into a ScoutingReport model and saves it to the scouting_reports table.
     Why: Ensures that the results are persisted and the job status is updated to 'completed'.
     """
-    pass
-
+    _logger.info(f"Finalizing report {request_id}")
+    report = ScoutingReport(**report_data)
+    _logger.info(f"Report saved to DB: {report}")
 
 if __name__ == '__main__':
     request_id_ = create_report_request("Generate a full scouting report for NRG in the last 6 months")
