@@ -9,6 +9,7 @@ clients/**/__pycache__
 clients/**/__pycache__/**
 *.pyc
 
+logs/
 clients/response
 clients/response/
 clients/errors
@@ -21,3 +22,4 @@ transform_test_outputs/
 
 ingestion/ingestion_output_samples
 ingestion/ingestion_output_samples/
+/logs/
