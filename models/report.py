@@ -85,3 +85,22 @@ class ScoutingReport(BaseModel):
             "metadata": self.metadata,
             "created_at": self.created_at.isoformat()
         }
+
+
+class ReportRequest(BaseModel):
+    """
+    Represents a report generation request in the job queue.
+
+    New Architecture: Stores natural language prompts instead of structured params.
+    The LLM router interprets the prompt and routes to the appropriate handler.
+    """
+    id: Optional[int] = None
+    user_prompt: str = Field(..., description="Natural language prompt from user")
+    status: str = Field(default='pending', description="pending|processing|completed|failed")
+    created_at: datetime = Field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+    # Optional: Keep these for backwards compatibility, but they're not required anymore
+    team_id: Optional[str] = None
+    time_window: Optional[str] = None
