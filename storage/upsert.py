@@ -106,89 +106,69 @@ def upsert_match(match_data: Dict[str, Any]):
 def upsert_scouting_report(report_data: Dict[str, Any]):
     """
     Insert or update a scouting report.
-
-    Args:
-        report_data: Dict with keys:
-            - report_request_id
-            - team_id
-            - team_name
-            - total_matches
-            - total_games
-            - win_rate
-            - current_streak
-            - top_agents (JSON)
-            - map_performance (JSON)
-            - player_stats (JSON)
-            - actionable_insights (JSON)
-            - time_window
-
-    Returns:
-        report database ID
-
-    Usage:
-        upsert_scouting_report({
-            'team_id': '53625',
-            'team_name': 'Team Liquid',
-            'total_matches': 10,
-            'win_rate': 70.0,
-            'top_agents': [{'agent': 'Jett', 'pick_rate': 0.80}]
-        })
     """
+    _logger.info(f"Upserting scouting report for request {report_data.get('report_request_id')}")
     with get_db_cursor() as cursor:
         # Check if exists
         cursor.execute("SELECT id FROM scouting_reports WHERE report_request_id = %s", (report_data.get('report_request_id'),))
         existing = cursor.fetchone()
         
+        # Prepare full analysis data for storage in metadata
+        metadata = report_data.get('metadata', {})
+        # Ensure structural tiers are preserved if present in top-level
+        if report_data.get('macro_analysis'): metadata['macro_analysis'] = report_data.get('macro_analysis')
+        if report_data.get('mid_game_analysis'): metadata['mid_game_analysis'] = report_data.get('mid_game_analysis')
+        if report_data.get('micro_analysis'): metadata['micro_analysis'] = report_data.get('micro_analysis')
+        
+        # 90-5-60 tiered architecture storage
+        flash_card = report_data.get('flash_card')
+        coach_read = report_data.get('coach_read')
+        analyst_appendix = report_data.get('analyst_appendix')
+        
+        # Summary text for quick display (flash_card game plan)
+        summary_text = report_data.get('summary', '')
+        if not summary_text and flash_card:
+            summary_text = " | ".join(flash_card.get('game_plan', []))
+
+        db_params = {
+            'report_request_id': report_data.get('report_request_id'),
+            'total_matches': report_data.get('total_matches', 0),
+            'total_games': report_data.get('total_games', 0),
+            'win_rate': report_data.get('win_rate', 0.0),
+            'current_streak': report_data.get('current_streak', 0),
+            'top_agents': Json(report_data.get('top_agents', [])),
+            'map_performance': Json(report_data.get('map_performance', {})),
+            'player_stats': Json(report_data.get('player_stats', [])),
+            'actionable_insights': Json(report_data.get('actionable_insights', [])),
+            'report_data': Json({
+                'flash_card': flash_card,
+                'coach_read': coach_read,
+                'analyst_appendix': analyst_appendix,
+                'metadata': metadata
+            }),
+            'report_type': report_data.get('report_type', 'full'),
+            'team_id': report_data.get('team_id'),
+            'team_name': report_data.get('team_name'),
+            'time_window': report_data.get('time_window', 'LAST_3_MONTHS'),
+            'generated_report': report_data.get('generated_report', '')
+        }
+
         if existing:
             cursor.execute("""
                            UPDATE scouting_reports SET
-                               total_matches       = %(total_matches)s,
-                               total_games         = %(total_games)s,
-                               win_rate            = %(win_rate)s,
-                               current_streak      = %(current_streak)s,
-                               top_agents          = %(top_agents)s,
-                               map_performance     = %(map_performance)s,
-                               player_stats        = %(player_stats)s,
-                               actionable_insights = %(actionable_insights)s,
-                               created_at          = NOW()
+                               report_data         = %(report_data)s,
+                               generated_report    = %(generated_report)s
                            WHERE report_request_id = %(report_request_id)s
                            RETURNING id
-                           """, {
-                               'report_request_id': report_data.get('report_request_id'),
-                               'total_matches': report_data.get('total_matches', 0),
-                               'total_games': report_data.get('total_games', 0),
-                               'win_rate': report_data.get('win_rate', 0.0),
-                               'current_streak': report_data.get('current_streak', 0),
-                               'top_agents': Json(report_data.get('top_agents', [])),
-                               'map_performance': Json(report_data.get('map_performance', {})),
-                               'player_stats': Json(report_data.get('player_stats', [])),
-                               'actionable_insights': Json(report_data.get('actionable_insights', [])),
-                           })
+                           """, db_params)
         else:
             cursor.execute("""
-                           INSERT INTO scouting_reports (report_request_id, team_id, team_name,
-                                                         total_matches, total_games, win_rate, current_streak,
-                                                         top_agents, map_performance, player_stats, actionable_insights,
-                                                         time_window)
-                           VALUES (%(report_request_id)s, %(team_id)s, %(team_name)s,
-                                   %(total_matches)s, %(total_games)s, %(win_rate)s, %(current_streak)s,
-                                   %(top_agents)s, %(map_performance)s, %(player_stats)s, %(actionable_insights)s,
-                                   %(time_window)s)
+                           INSERT INTO scouting_reports (report_request_id, report_type,
+                                                         report_data, generated_report)
+                           VALUES (%(report_request_id)s, %(report_type)s,
+                                   %(report_data)s, %(generated_report)s)
                            RETURNING id
-                           """, {
-                               'report_request_id': report_data.get('report_request_id'),
-                               'team_id': report_data['team_id'],
-                               'team_name': report_data['team_name'],
-                               'total_matches': report_data.get('total_matches', 0),
-                               'total_games': report_data.get('total_games', 0),
-                               'win_rate': report_data.get('win_rate', 0.0),
-                               'current_streak': report_data.get('current_streak', 0),
-                               'top_agents': Json(report_data.get('top_agents', [])),
-                               'map_performance': Json(report_data.get('map_performance', {})),
-                               'player_stats': Json(report_data.get('player_stats', [])),
-                               'actionable_insights': Json(report_data.get('actionable_insights', [])),
-                               'time_window': report_data.get('time_window', 'LAST_3_MONTHS')
-                           })
+                           """, db_params)
 
         result = cursor.fetchone()
         return result['id']
