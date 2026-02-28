@@ -7,6 +7,162 @@ from typing import Dict, Any, Optional
 _logger = get_logger(__name__)
 
 
+def _coerce_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if isinstance(payload, dict):
+        return payload
+    return {}
+
+
+def _upsert_plane_payload(
+    table_name: str,
+    report_request_id: int,
+    payload_key: str,
+    payload: Optional[Dict[str, Any]],
+    source_stage: str,
+    extra_insert_columns: Optional[Dict[str, Any]] = None,
+    extra_update_assignments: Optional[str] = None,
+) -> int:
+    extra_insert_columns = extra_insert_columns or {}
+    payload_value = _coerce_payload(payload)
+
+    with get_db_cursor() as cursor:
+        if extra_insert_columns:
+            extra_cols = ", ".join(extra_insert_columns.keys())
+            extra_placeholders = ", ".join(["%s"] * len(extra_insert_columns))
+            extra_values = list(extra_insert_columns.values())
+            update_tail = f", {extra_update_assignments}" if extra_update_assignments else ""
+
+            cursor.execute(
+                f"""
+                INSERT INTO {table_name} (report_request_id, payload_key, source_stage, payload, {extra_cols})
+                VALUES (%s, %s, %s, %s, {extra_placeholders})
+                ON CONFLICT (report_request_id, payload_key)
+                DO UPDATE SET
+                    source_stage = EXCLUDED.source_stage,
+                    payload = EXCLUDED.payload,
+                    last_modified_at = NOW()
+                    {update_tail}
+                RETURNING id
+                """,
+                [report_request_id, payload_key, source_stage, Json(payload_value), *extra_values]
+            )
+        else:
+            cursor.execute(
+                f"""
+                INSERT INTO {table_name} (report_request_id, payload_key, source_stage, payload)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (report_request_id, payload_key)
+                DO UPDATE SET
+                    source_stage = EXCLUDED.source_stage,
+                    payload = EXCLUDED.payload,
+                    last_modified_at = NOW()
+                RETURNING id
+                """,
+                (report_request_id, payload_key, source_stage, Json(payload_value))
+            )
+
+        row = cursor.fetchone()
+        return row['id']
+
+
+def upsert_raw_payload(
+    report_request_id: int,
+    payload_key: str,
+    payload: Optional[Dict[str, Any]],
+    source_stage: str = 'INGESTING',
+) -> int:
+    return _upsert_plane_payload(
+        table_name='report_raw_payloads',
+        report_request_id=report_request_id,
+        payload_key=payload_key,
+        payload=payload,
+        source_stage=source_stage,
+    )
+
+
+def upsert_normalized_payload(
+    report_request_id: int,
+    payload_key: str,
+    payload: Optional[Dict[str, Any]],
+    source_stage: str = 'INGESTING',
+) -> int:
+    return _upsert_plane_payload(
+        table_name='report_normalized_payloads',
+        report_request_id=report_request_id,
+        payload_key=payload_key,
+        payload=payload,
+        source_stage=source_stage,
+    )
+
+
+def upsert_feature_payload(
+    report_request_id: int,
+    payload_key: str,
+    payload: Optional[Dict[str, Any]],
+    feature_version: str = 'features-v1',
+    source_stage: str = 'FEATURIZING',
+) -> int:
+    return _upsert_plane_payload(
+        table_name='report_feature_payloads',
+        report_request_id=report_request_id,
+        payload_key=payload_key,
+        payload=payload,
+        source_stage=source_stage,
+        extra_insert_columns={'feature_version': feature_version},
+        extra_update_assignments="feature_version = EXCLUDED.feature_version",
+    )
+
+
+def upsert_report_artifact(
+    report_request_id: int,
+    report_type: str,
+    report_payload: Optional[Dict[str, Any]],
+    summary: str,
+    model_version: Optional[str],
+    feature_version: Optional[str],
+    contract_version: str = 'scouting-report.v1',
+) -> int:
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO report_artifacts (
+                report_request_id,
+                report_type,
+                contract_version,
+                model_version,
+                feature_version,
+                summary,
+                report_json,
+                generated_at,
+                last_modified_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            ON CONFLICT (report_request_id)
+            DO UPDATE SET
+                report_type = EXCLUDED.report_type,
+                contract_version = EXCLUDED.contract_version,
+                model_version = EXCLUDED.model_version,
+                feature_version = EXCLUDED.feature_version,
+                summary = EXCLUDED.summary,
+                report_json = EXCLUDED.report_json,
+                generated_at = NOW(),
+                last_modified_at = NOW()
+            RETURNING id
+            """,
+            (
+                report_request_id,
+                report_type,
+                contract_version,
+                model_version,
+                feature_version,
+                summary,
+                Json(_coerce_payload(report_payload)),
+            )
+        )
+        row = cursor.fetchone()
+        return row['id']
+
+
 def upsert_team(team_id: str, team_name: str, **extra_fields):
     """
     Insert or update a team record.
@@ -344,3 +500,4 @@ if __name__ == "__main__":
     print(f"✅ Report request created with ID: {request_id}")
     update_report_request_status(request_id, 'PROCESSING')
     print("✅ Status updated to 'PROCESSING'")
+
