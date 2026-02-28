@@ -40,3 +40,11 @@ delete from report_requests;
 --     drop column if exists team_fk_id;
 -- alter table report_requests
 --     drop column if exists team_name
+
+-- SELECT column_name, data_type, is_nullable, column_default
+-- FROM information_schema.columns
+-- WHERE table_schema = 'public' AND table_name = 'report_requests';
+--
+-- SELECT column_name, data_type, is_nullable, column_default
+-- FROM information_schema.columns
+-- WHERE table_schema = 'public' AND table_name = 'scouting_reports';
