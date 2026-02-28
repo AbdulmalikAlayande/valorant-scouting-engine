@@ -156,7 +156,7 @@ class ReportRequest(BaseModel):
     """
     id: Optional[int] = None
     user_prompt: str = Field(..., description="Natural language prompt from user")
-    status: str = Field(default='pending', description="pending|processing|completed|failed")
+    status: str = Field(default='PENDING', description="PENDING|PROCESSING|COMPLETED|FAILED")
     created_at: datetime = Field(default_factory=datetime.now)
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
