@@ -23,3 +23,4 @@ transform_test_outputs/
 ingestion/ingestion_output_samples
 ingestion/ingestion_output_samples/
 /logs/
+/frontend-design
