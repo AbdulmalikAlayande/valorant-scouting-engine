@@ -6,6 +6,7 @@ from jobs.prompt_router import GeneralPromptRouter
 from storage.db import get_db_cursor
 from storage.upsert import update_report_request_status, upsert_scouting_report, create_report_request
 from models.report import ScoutingReport
+from config.settings import POLL_TIME_IN_SECONDS
 
 _logger = get_logger(__name__)
 
