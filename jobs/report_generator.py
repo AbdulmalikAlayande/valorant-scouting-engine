@@ -133,7 +133,7 @@ def start_worker():
     Usage:
         python -m jobs.report_generator
     """
-    _logger.info("🎬 Starting Python Analysis Worker...")
+    _logger.info("🎬 Starting Stratigen AI Engine...")
 
     try:
         # Run the async polling loop
