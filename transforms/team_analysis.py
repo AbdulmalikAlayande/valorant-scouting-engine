@@ -5,7 +5,8 @@ Each function is MODULAR - does ONE thing, returns a consistent structure.
 Can be used by multiple handlers (full report, map analysis, etc.)
 """
 
-from typing import Dict, Any
+import pandas as pd
+from typing import Dict, Any, List
 
 from config.globalutilitylogger import get_logger
 
