@@ -249,16 +249,17 @@ def generate_player_targeting_insights(player_analysis: Dict[str, Any]) -> List[
 
     # Star player warning
     star = player_analysis.get('star_player')
-    if star:
+    if star and star.get('kd_ratio') is not None:
+        first_kill_pct = star.get('first_kill_pct', 0)
         insights.append(
             f"⚡ WATCH {star.get('player_id', 'Star Player')} "
-            f"({star['kd_ratio']} K/D, {star['first_kill_pct']*100:.1f}% first blood rate) "
+            f"({star['kd_ratio']} K/D, {first_kill_pct*100:.1f}% first blood rate) "
             f"- high impact player"
         )
 
     # Weak link target
     weak_link = player_analysis.get('weak_link')
-    if weak_link:
+    if weak_link and weak_link.get('kd_ratio') is not None:
         insights.append(
             f"🎯 TARGET {weak_link.get('player_id', 'Weak Link')} "
             f"({weak_link['kd_ratio']} K/D) "
