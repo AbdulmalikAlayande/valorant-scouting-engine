@@ -92,6 +92,19 @@ def ingest_team_by_id(team_id: str) -> Team:
     return Team.from_grid_response(team_data)
 
 
+def ingest_player_by_name(nickname: str) -> Dict[str, Any] | None:
+    """
+    Resolve a player by their nickname.
+    """
+    if not nickname or not nickname.strip():
+        raise ValueError("nickname is required")
+
+    data = get_player_by_name(nickname.strip())
+    if data:
+        return _normalize_player(data)
+    return None
+
+
 def ingest_team_players(team_id: str) -> Dict[str, Any]:
     """
     Fetch the current roster for a team. Used for player-level analysis and
