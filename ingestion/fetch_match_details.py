@@ -320,6 +320,7 @@ def _normalize_games(games: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "started": g.get("started"),
                 "paused": g.get("paused"),
                 "finished": g.get("finished"),
+                "segments": segments_out,
                 "map": {
                     "name": map_node.get("name"),
                     "bounds": {
