@@ -300,82 +300,88 @@ def calculate_player_impact_score(player_stats: Dict[str, Any]) -> float:
 
 def rank_players_by_performance(player_stats_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Rank all players by overall performance.
-
-    Args:
-        player_stats_list: List of outputs from ingest_player_statistics()
-
-    Returns:
-        List of player rankings with metrics
-        [
-            {
-                "rank": 1,
-                "player_id": "2512",
-                "kd_ratio": 1.45,
-                "impact_score": 0.82,
-                "tier": "star"
-            },
-            ...
-        ]
-        Tiers: "star" (top 20%), "average" (middle 60%), "weak" (bottom 20%)
+    Rank all players by overall performance using role-adjusted impact scores.
     """
     if not player_stats_list:
         return []
 
-    ranked = []
+    df = player_stats_to_df(player_stats_list)
+    if df.empty:
+        return []
 
-    for player_data in player_stats_list:
-        if not player_data.get('records') or not player_data['records']:
-            continue
-
-        record = player_data['records'][0]
-        player_id = record.get('player_id')
-
-        combat = record.get('combat', {})
-        kills = combat.get('kills', {}).get('total', 0)
-        deaths = combat.get('deaths', {}).get('total', 1)
-        kd_ratio = round(kills / deaths, 2) if deaths > 0 else 0.0
-
-        impact = calculate_player_impact_score(player_data)
-
-        ranked.append({
-            "player_id": player_id,
-            "kd_ratio": kd_ratio,
-            "impact_score": impact
-        })
-
-    # Sort by impact score descending
-    ranked.sort(key=lambda p: p['impact_score'], reverse=True)
-
-    # Add rank and tier
-    total_players = len(ranked)
-    for i, player in enumerate(ranked, start=1):
-        player['rank'] = i
-
-        # Determine tier
-        if i <= max(1, total_players * 0.2):
-            player['tier'] = "star"
-        elif i > total_players * 0.8:
-            player['tier'] = "weak"
+    df['impact_score'] = df.apply(calculate_elite_impact_score, axis=1)
+    
+    df = df.sort_values(by='impact_score', ascending=False)
+    
+    rankings = []
+    for i, (_, row) in enumerate(df.iterrows()):
+        impact = float(row['impact_score'])
+        if impact >= 0.8:
+            tier = "Elite"
+        elif impact >= 0.6:
+            tier = "Great"
+        elif impact >= 0.4:
+            tier = "Average"
         else:
-            player['tier'] = "average"
+            tier = "Struggling"
+            
+        rankings.append({
+            "rank": i + 1,
+            "player_id": row['player_id'],
+            "role": row['role'],
+            "impact_score": impact,
+            "kd_ratio": round(float(row['kd_ratio']), 2),
+            "adr": round(float(row['adr']), 1),
+            "tier": tier
+        })
+        
+    return rankings
 
-    return ranked
+def generate_performance_chart(player_stats_list: List[Dict[str, Any]], output_path: str) -> str:
+    """
+    Generate a bar chart of player impact scores and save it.
+    """
+    if plt is None:
+        _logger.warning("Matplotlib not installed, skipping chart generation")
+        return ""
+
+    df = player_stats_to_df(player_stats_list)
+    if df.empty:
+        return ""
+    
+    df['impact_score'] = df.apply(calculate_elite_impact_score, axis=1)
+    df = df.sort_values(by='impact_score', ascending=True)
+    
+    plt.figure(figsize=(10, 6))
+    colors = plt.cm.viridis(np.linspace(0, 1, len(df)))
+    plt.barh(df['player_id'], df['impact_score'], color=colors)
+    plt.xlabel('Impact Score (Role-Adjusted)')
+    plt.title('Player Performance Overview')
+    plt.axvline(x=0.6, color='r', linestyle='--', label='Elite Threshold')
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+    
+    return output_path
 
 
 def get_player_analysis_summary(player_stats_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Convenience function: Get ALL player-level metrics in one call.
-
-    Args:
-        player_stats_list: List of outputs from ingest_player_statistics()
-
-    Returns:
-        Dict containing all player analysis metrics
+    Get a comprehensive summary of player analysis.
     """
+    if not player_stats_list:
+        return {}
+
+    star = identify_star_player(player_stats_list)
+    weak = identify_weak_link(player_stats_list)
+    rankings = rank_players_by_performance(player_stats_list)
+    
     return {
-        "star_player": identify_star_player(player_stats_list),
-        "weak_link": identify_weak_link(player_stats_list),
+        "star_player": star,
+        "target_player": weak,
+        "rankings": rankings,
         "agent_pools": extract_agent_pools(player_stats_list),
-        "player_rankings": rank_players_by_performance(player_stats_list)
+        "total_players": len(player_stats_list)
     }
