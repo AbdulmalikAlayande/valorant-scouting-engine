@@ -55,6 +55,20 @@ query GetSeriesState($id: ID!) {
             started
             paused
             finished
+            segments {
+                id
+                type
+                sequenceNumber
+                teams {
+                    id
+                    name
+                    won
+                    side
+                    ... on SegmentTeamStateValorant {
+                        winType
+                    }
+                }
+            }
             map {
                 name
                 bounds {
