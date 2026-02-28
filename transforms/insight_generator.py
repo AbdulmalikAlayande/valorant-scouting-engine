@@ -5,11 +5,190 @@ This is the "Brain" - takes all transform outputs and synthesizes them
 into English recommendations that coaches can actually use.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from pydantic_ai import Agent
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 from config.globalutilitylogger import get_logger
+from config.settings import GEMINI_MODEL, GEMINI_API_KEY
+from models.report import InsightObject, FlashCard, CoachRead, AnalystAppendix
+from transforms.counter_strat import generate_counter_strat
 
 _logger = get_logger(__name__)
 
+class InsightSynthesizerAgent:
+    """
+    LLM-powered agent that translates raw tactical truths into the 90-5-60 framework.
+    """
+    def __init__(self):
+        self.provider = GoogleProvider(api_key=GEMINI_API_KEY)
+        self.model = GoogleModel(GEMINI_MODEL, provider=self.provider)
+        self.agent = Agent(
+            self.model,
+            result_type=CoachRead,
+            system_prompt=(
+                "You are an expert VALORANT tactical analyst and copywriter. "
+                "Your task is to take raw statistical analysis and 'tells' and "
+                "synthesize them into a structured tactical playbook (90-second read). "
+                "Follow these rules strictly:\n"
+                "1. Use crisp, coach-friendly, imperative language (e.g., 'Punish', 'Execute', 'Ban').\n"
+                "2. Each insight must follow the Claim -> Action -> Evidence structure.\n"
+                "3. No section or justification should exceed 3 lines.\n"
+                "4. Be specific—mention map names, players, and exact numbers from the data.\n"
+                "5. Focus on what we should DO, not just what they did."
+            )
+        )
+
+    async def synthesize_coach_read(self, raw_data: Dict[str, Any]) -> CoachRead:
+        """
+        Translates raw dicts into Layer B (Coach Read).
+        """
+        _logger.info("Synthesizing Coach Read (Layer B) via LLM")
+        
+        prompt = f"Analyze the following raw tactical data and generate 3-5 high-impact insights. Output ONLY valid JSON matching the CoachRead schema:\n{raw_data}"
+        result = await self.agent.run(prompt)
+        
+        if isinstance(result.data, CoachRead):
+            return result.data
+            
+        # Fallback for manual parsing
+        content = result.data if result.data else result.output
+        if isinstance(content, dict):
+            return CoachRead.model_validate(content)
+            
+        import re
+        try:
+            if isinstance(content, str):
+                match = re.search(r'\{.*\}', content, re.DOTALL)
+                if match:
+                    return CoachRead.model_validate_json(match.group())
+                return CoachRead.model_validate_json(content)
+            return CoachRead.model_validate(content)
+        except Exception as e:
+            _logger.error(f"Failed to parse CoachRead: {e}. Content snippet: {str(content)[:500]}...")
+            return CoachRead(insights=[])
+
+class FlashCardAgent:
+    """
+    Specialized agent for the 15-second Flash Card (Layer A).
+    """
+    def __init__(self):
+        self.provider = GoogleProvider(api_key=GEMINI_API_KEY)
+        self.model = GoogleModel(GEMINI_MODEL, provider=self.provider)
+        self.agent = Agent(
+            self.model,
+            result_type=FlashCard,
+            system_prompt=(
+                "You are a Head Coach's tactical assistant. Create a 15-second 'Flash Card' "
+                "for the upcoming match. This is for instant decision-making 'above the fold'.\n"
+                "Rules:\n"
+                "1. Game Plan: Exactly 3 actionable bullets.\n"
+                "2. Veto: 1 clear recommendation with a 1-line justification.\n"
+                "3. Patterns: 1-2 high-confidence behaviors to exploit or avoid.\n"
+                "4. Risk: 1-2 critical flags that could ruin the plan."
+            )
+        )
+
+    async def synthesize_flash_card(self, coach_read: CoachRead) -> FlashCard:
+        """
+        Distills Layer B into Layer A (Flash Card).
+        """
+        _logger.info("Synthesizing Flash Card (Layer A) via LLM")
+        
+        # Specific instruction to avoid wrapping in 'flash_card' key
+        prompt = (
+            f"Distill these tactical insights into a 15-second Flash Card. "
+            f"You MUST return a JSON object with keys: game_plan (list of 3 strings), veto_recommendation (string), punish_patterns (list), risk_flags (list). "
+            f"Do NOT wrap it in a 'flash_card' key.\n\n"
+            f"INSIGHTS:\n{coach_read.model_dump_json()}"
+        )
+        result = await self.agent.run(prompt)
+        
+        if isinstance(result.data, FlashCard):
+            return result.data
+            
+        # Fallback for manual parsing
+        content = result.data if result.data else result.output
+        if isinstance(content, dict):
+            # Try to unwrap if LLM wrapped it anyway
+            if "flash_card" in content and len(content) == 1:
+                content = content["flash_card"]
+            return FlashCard.model_validate(content)
+            
+        import re
+        import json
+        try:
+            if isinstance(content, str):
+                match = re.search(r'\{.*\}', content, re.DOTALL)
+                if match:
+                    json_str = match.group()
+                    data = json.loads(json_str)
+                    if "flash_card" in data and len(data) == 1:
+                        data = data["flash_card"]
+                    return FlashCard.model_validate(data)
+                return FlashCard.model_validate_json(content)
+            return FlashCard.model_validate(content)
+        except Exception as e:
+            _logger.error(f"Failed to parse FlashCard: {e}. Content snippet: {str(content)[:500]}...")
+            return FlashCard(game_plan=[], veto_recommendation="N/A", punish_patterns=[], risk_flags=[])
+
+async def generate_90_5_60_report(raw_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Orchestrates the synthesis of a full 90-5-60 structured report.
+    """
+    synthesizer = InsightSynthesizerAgent()
+    flash_card_agent = FlashCardAgent()
+
+    # 1. Layer B: Coach Read (90s)
+    coach_read = await synthesizer.synthesize_coach_read(raw_analysis)
+    
+    # Apply hard caps and filtering
+    coach_read.insights = rank_and_filter_insights(coach_read.insights)
+    
+    # 2. Layer A: Flash Card (15s)
+    flash_card = await flash_card_agent.synthesize_flash_card(coach_read)
+    
+    # 3. Layer C: Analyst Appendix (5-60m)
+    appendix = AnalystAppendix(raw_data=raw_analysis)
+
+    return {
+        "flash_card": flash_card.model_dump(),
+        "coach_read": coach_read.model_dump(),
+        "analyst_appendix": appendix.model_dump(),
+        "actionable_insights": [i.recommendation for i in coach_read.insights]
+    }
+
+def rank_and_filter_insights(insights: List[InsightObject]) -> List[InsightObject]:
+    """
+    Ranks and filters insights based on the 90-5-60 rules.
+    - Max 5 primary actions
+    - Sort by priority score
+    """
+    # Sort by priority descending
+    # Recalculate priority to ensure formula is applied
+    for i in insights:
+        if i.priority == 0.0:
+            i.priority = calculate_priority(i)
+            
+    sorted_insights = sorted(insights, key=lambda x: x.priority, reverse=True)
+    
+    # Throttling
+    filtered = sorted_insights[:5]
+    
+    _logger.info(f"Filtered {len(insights)} insights down to {len(filtered)}")
+    return filtered
+
+def calculate_priority(insight: InsightObject) -> float:
+    """
+    Calculates the final priority score using the 90-5-60 formula.
+    priority_score = impact × confidence × freshness × sample_quality
+    """
+    return (
+        insight.impact_score * 
+        insight.confidence_score * 
+        insight.freshness * 
+        insight.sample_quality
+    )
 
 def generate_map_veto_insights(map_analysis: Dict[str, Any]) -> List[str]:
     """
