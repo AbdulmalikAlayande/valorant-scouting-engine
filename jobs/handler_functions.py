@@ -146,24 +146,29 @@ def handle_generate_full_scouting_report(team_name: str, match_count: int, time_
 
             # MACRO ANALYSIS (The "Why")
             "macro_analysis": {
+                "win_rates": map_analysis.get('win_rates', []),
                 "pistol_rounds": team_analysis.get('pistol_rounds'),
                 "map_vetoes": map_analysis.get('veto_strategy'),
                 "default_compositions": composition_analysis.get('default_comps', [])[:3],
-                "early_aggression": weakness_analysis.get('early_aggression')
+                "early_aggression": weakness_analysis.get('early_aggression'),
+                "recurring_tells": weakness_analysis.get('recurring_tells', [])
             },
 
             # MID-GAME ANALYSIS (The "How")
             "mid_game_analysis": {
                 "side_balance": team_analysis.get('side_balance'),
                 "objective_control": team_analysis.get('objective_control'),
-                "economy_patterns": weakness_analysis.get('economy_patterns')
+                "economy_patterns": weakness_analysis.get('economy_patterns'),
+                "retake_efficiency": team_analysis.get('retake_efficiency')
             },
 
             # MICRO ANALYSIS (The "Who")
             "micro_analysis": {
                 "star_player": player_analysis.get('star_player'),
-                "weak_link": player_analysis.get('weak_link'),
-                "agent_pools": player_analysis.get('agent_pools')
+                "target_player": player_analysis.get('target_player'),
+                "agent_pools": player_analysis.get('agent_pools'),
+                "role_distribution": player_analysis.get('role_distribution'),
+                "rankings": player_analysis.get('rankings', [])
             },
 
             # ACTIONABLE INSIGHTS (The "How to Win")
