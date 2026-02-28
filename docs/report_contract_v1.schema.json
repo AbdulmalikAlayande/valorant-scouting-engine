@@ -1,0 +1,415 @@
+{
+  "$defs": {
+    "MacroAnalysis": {
+      "properties": {
+        "win_rates": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Win Rates",
+          "type": "array"
+        },
+        "pistol_rounds": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pistol Rounds"
+        },
+        "map_vetoes": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Map Vetoes"
+        },
+        "default_compositions": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Default Compositions",
+          "type": "array"
+        },
+        "early_aggression": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Early Aggression"
+        },
+        "recurring_tells": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Recurring Tells",
+          "type": "array"
+        }
+      },
+      "title": "MacroAnalysis",
+      "type": "object"
+    },
+    "MicroAnalysis": {
+      "properties": {
+        "star_player": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Star Player"
+        },
+        "target_player": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Player"
+        },
+        "agent_pools": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Agent Pools",
+          "type": "array"
+        },
+        "role_distribution": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role Distribution"
+        },
+        "rankings": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Rankings",
+          "type": "array"
+        }
+      },
+      "title": "MicroAnalysis",
+      "type": "object"
+    },
+    "MidGameAnalysis": {
+      "properties": {
+        "side_balance": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Side Balance"
+        },
+        "objective_control": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objective Control"
+        },
+        "economy_patterns": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Economy Patterns"
+        },
+        "retake_efficiency": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retake Efficiency"
+        }
+      },
+      "title": "MidGameAnalysis",
+      "type": "object"
+    },
+    "ReportContractMetadata": {
+      "properties": {
+        "contract_version": {
+          "default": "scouting-report.v1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "model_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Version"
+        },
+        "feature_version": {
+          "title": "Feature Version",
+          "type": "string"
+        },
+        "composer_version": {
+          "title": "Composer Version",
+          "type": "string"
+        },
+        "feature_producer_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Feature Producer Versions",
+          "type": "object"
+        },
+        "lineage": {
+          "additionalProperties": true,
+          "title": "Lineage",
+          "type": "object"
+        }
+      },
+      "required": [
+        "feature_version",
+        "composer_version"
+      ],
+      "title": "ReportContractMetadata",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "report_type": {
+      "title": "Report Type",
+      "type": "string"
+    },
+    "report_request_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Report Request Id"
+    },
+    "team_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Team Id"
+    },
+    "team_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Team Name"
+    },
+    "player_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Player Id"
+    },
+    "player_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Player Name"
+    },
+    "map_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Map Name"
+    },
+    "time_window": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time Window"
+    },
+    "macro_analysis": {
+      "$ref": "#/$defs/MacroAnalysis"
+    },
+    "mid_game_analysis": {
+      "$ref": "#/$defs/MidGameAnalysis"
+    },
+    "micro_analysis": {
+      "$ref": "#/$defs/MicroAnalysis"
+    },
+    "actionable_insights": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Actionable Insights",
+      "type": "array"
+    },
+    "detailed_analysis": {
+      "additionalProperties": true,
+      "title": "Detailed Analysis",
+      "type": "object"
+    },
+    "report_specific": {
+      "additionalProperties": true,
+      "title": "Report Specific",
+      "type": "object"
+    },
+    "metadata": {
+      "$ref": "#/$defs/ReportContractMetadata"
+    },
+    "flash_card": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flash Card"
+    },
+    "coach_read": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Coach Read"
+    },
+    "analyst_appendix": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Analyst Appendix"
+    },
+    "generated_report": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Generated Report"
+    }
+  },
+  "required": [
+    "report_type",
+    "metadata"
+  ],
+  "title": "ReportContractV1",
+  "type": "object"
+}
