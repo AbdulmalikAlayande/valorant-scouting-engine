@@ -3,169 +3,199 @@ Extracts player-level metrics for Micro analysis.
 Answers: "Who do we target?" and "Who is their star player?"
 """
 
+import pandas as pd
+import numpy as np
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 from typing import Dict, Any, List, Optional
 from config.globalutilitylogger import get_logger
 
 _logger = get_logger(__name__)
 
+# VALORANT Roles Mapping (Lowercase keys for easier lookup)
+AGENT_ROLES = {
+    "jett": "Duelist",
+    "reyna": "Duelist",
+    "phoenix": "Duelist",
+    "raze": "Duelist",
+    "yoru": "Duelist",
+    "neon": "Duelist",
+    "iso": "Duelist",
+    "sova": "Initiator",
+    "breach": "Initiator",
+    "skye": "Initiator",
+    "kay/o": "Initiator",
+    "fade": "Initiator",
+    "gekko": "Initiator",
+    "brimstone": "Controller",
+    "viper": "Controller",
+    "omen": "Controller",
+    "astra": "Controller",
+    "harbor": "Controller",
+    "clove": "Controller",
+    "killjoy": "Sentinel",
+    "cypher": "Sentinel",
+    "sage": "Sentinel",
+    "chamber": "Sentinel",
+    "deadlock": "Sentinel",
+    "vyse": "Sentinel"
+}
+
+ROLE_WEIGHTS = {
+    "Duelist": {"kd": 0.25, "adr": 0.25, "fk": 0.40, "win": 0.10}, # Meta: High entry impact + sustained damage
+    "Initiator": {"kd": 0.15, "adr": 0.30, "assist": 0.40, "win": 0.15}, # Meta: Utility conversion and trade damage
+    "Controller": {"kd": 0.15, "adr": 0.20, "assist": 0.35, "win": 0.30}, # Meta: Survival and clutch utility
+    "Sentinel": {"kd": 0.25, "adr": 0.15, "assist": 0.15, "win": 0.45}, # Meta: Site anchoring and round conversion
+    "Unknown": {"kd": 0.25, "adr": 0.25, "assist": 0.25, "win": 0.25}
+}
+
+# ============================================================================
+# UTILITY: DATA CONVERSION
+# ============================================================================
+
+def player_stats_to_df(player_stats_list: List[Dict[str, Any]]) -> pd.DataFrame:
+    """
+    Convert a list of player stats to a Pandas DataFrame for analysis.
+    """
+    flattened_data = []
+    for player_data in player_stats_list:
+        if not player_data.get('records'):
+            continue
+        
+        record = player_data['records'][0]
+        combat = record.get('combat', {})
+        games = record.get('games', {})
+        
+        # Identify most played agent and role
+        raw_game = record.get('raw', {}).get('game', {})
+        unit_kills = raw_game.get('unitKills', [])
+        
+        # In GRID VALORANT data, unitKills often lists agents
+        top_agent = "Unknown"
+        top_agent_count = 0
+        for unit in unit_kills:
+            name = unit.get('unitName')
+            count = unit.get('count', {}).get('sum', 0)
+            if count > top_agent_count:
+                top_agent = name
+                top_agent_count = count
+        
+        role = AGENT_ROLES.get(top_agent.lower(), "Unknown")
+        
+        row = {
+            "player_id": player_data.get('player_id'),
+            "role": role,
+            "top_agent": top_agent,
+            "kills": combat.get('kills', {}).get('total', 0),
+            "deaths": combat.get('deaths', {}).get('total', 1),
+            "assists": combat.get('kill_assists_given', {}).get('total', 0),
+            "adr": combat.get('damage_dealt', {}).get('avg', 0.0),
+            "first_kill_pct": games.get('first_kill_percentage', 0.0) / 100,
+            "win_rate": games.get('win_rate', 0.0) / 100,
+            "games_count": games.get('count', 0)
+        }
+        row["kd_ratio"] = row["kills"] / row["deaths"] if row["deaths"] > 0 else row["kills"]
+        flattened_data.append(row)
+    
+    return pd.DataFrame(flattened_data)
 
 # ============================================================================
 # MICRO-LEVEL ANALYSIS (Individual Player Performance)
 # ============================================================================
 
+def calculate_elite_impact_score(row: pd.Series) -> float:
+    """
+    Calculate an elite impact score based on player role and advanced metrics.
+    """
+    role = row.get('role', 'Unknown')
+    weights = ROLE_WEIGHTS.get(role, ROLE_WEIGHTS['Unknown'])
+    
+    # Normalize metrics (relative to typical professional benchmarks)
+    # K/D: 1.0 is average, 1.5 is elite
+    norm_kd = min(row['kd_ratio'] / 1.5, 1.2)
+    
+    # ADR: 130 is average, 170 is elite
+    norm_adr = min(row['adr'] / 170.0, 1.2)
+    
+    # Normalize win rate: 50% is 0.5, 100% is 1.0 (clamped to 1.2 for consistency)
+    norm_win = min(row['win_rate'] / 0.5, 1.2) * 0.5 # Scale it back so 50% = 0.5, 100% = 1.0
+    
+    score = 0.0
+    if role == "Duelist":
+        # Duelists focus on kills and opening rounds
+        norm_fk = min(row['first_kill_pct'] / 0.20, 1.2)
+        score = (norm_kd * weights['kd']) + (norm_adr * weights['adr']) + (norm_fk * weights['fk']) + (norm_win * weights['win'])
+    else:
+        # Others focus on utility/assists and survival
+        # Assist per round benchmark: 0.35
+        assists_per_game = row['assists'] / max(row['games_count'], 1)
+        # Normalize assists (assuming ~20 rounds per game)
+        # 0.35 assists per round = 7 assists per game
+        norm_assist = min(assists_per_game / 7.0, 1.2)
+        score = (norm_kd * weights['kd']) + (norm_adr * weights['adr']) + (norm_assist * weights['assist']) + (norm_win * weights['win'])
+        
+    return round(score, 3)
+
 def identify_star_player(player_stats_list: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-    Identify the primary carry/star player.
-
-    Criteria:
-    - Highest K/D ratio
-    - Highest kills per game
-    - Highest first kill percentage
-
-    Args:
-        player_stats_list: List of outputs from ingest_player_statistics()
-
-    Returns:
-        {
-            "player_id": "2512",
-            "nickname": "TenZ",
-            "kd_ratio": 1.45,
-            "kills_per_game": 18.2,
-            "first_kill_pct": 0.32,
-            "games_played": 25,
-            "reason": "Highest K/D and kills per game"
-        }
-        or None if no valid data
+    Identify the primary carry/star player using advanced metrics.
     """
     if not player_stats_list:
-        _logger.warning("No player stats provided for star player identification")
         return None
 
-    valid_players = []
-
-    for player_data in player_stats_list:
-        if not player_data.get('records') or not player_data['records']:
-            continue
-
-        record = player_data['records'][0]
-
-        # Extract combat metrics
-        combat = record.get('combat', {})
-        games_data = record.get('games', {})
-
-        kills_data = combat.get('kills', {})
-        deaths_data = combat.get('deaths', {})
-
-        kills_total = kills_data.get('total', 0)
-        deaths_total = deaths_data.get('total', 1)  # Avoid division by zero
-        kills_avg = kills_data.get('avg', 0.0)
-
-        games_count = games_data.get('count', 0)
-        first_kill_pct = games_data.get('first_kill_percentage', 0.0)
-
-        # Calculate K/D
-        kd_ratio = round(kills_total / deaths_total, 2) if deaths_total > 0 else 0.0
-
-        # Only consider players with significant data
-        if games_count < 3:
-            continue
-
-        valid_players.append({
-            "player_id": record.get('player_id'),
-            "nickname": None,  # Not available in current data structure
-            "kd_ratio": kd_ratio,
-            "kills_per_game": round(kills_avg, 2),
-            "first_kill_pct": first_kill_pct / 100,
-            "games_played": games_count
-        })
-
-    if not valid_players:
-        _logger.warning("No valid player data for star identification")
+    df = player_stats_to_df(player_stats_list)
+    if df.empty:
         return None
-
-    # Sort by K/D ratio (primary), then kills per game (secondary)
-    valid_players.sort(key=lambda p: (p['kd_ratio'], p['kills_per_game']), reverse=True)
-
-    star = valid_players[0]
-    star['reason'] = "Highest K/D and kills per game"
-
-    return star
-
+    
+    # Calculate elite scores for all players
+    df['impact_score'] = df.apply(calculate_elite_impact_score, axis=1)
+    
+    # Sort by impact score
+    df = df.sort_values(by='impact_score', ascending=False)
+    star_row = df.iloc[0]
+    
+    return {
+        "player_id": star_row['player_id'],
+        "role": star_row['role'],
+        "top_agent": star_row['top_agent'],
+        "kd_ratio": round(float(star_row['kd_ratio']), 2),
+        "adr": round(float(star_row['adr']), 1),
+        "impact_score": float(star_row['impact_score']),
+        "games_played": int(star_row['games_count']),
+        "reason": f"Highest role-adjusted impact score ({star_row['impact_score']}) as {star_row['role']}"
+    }
 
 def identify_weak_link(player_stats_list: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-    Identify the weakest performer (potential target).
-
-    Criteria:
-    - Lowest K/D ratio
-    - Highest isolated death rate (deaths without contributing)
-    - Lowest consistency
-
-    Args:
-        player_stats_list: List of outputs from ingest_player_statistics()
-
-    Returns:
-        {
-            "player_id": "9876",
-            "nickname": "PlayerX",
-            "kd_ratio": 0.78,
-            "deaths_per_game": 14.5,
-            "games_played": 20,
-            "reason": "Lowest K/D and highest deaths per game"
-        }
-        or None if no valid data
+    Identify the weakest performer using advanced metrics.
     """
     if not player_stats_list:
-        _logger.warning("No player stats provided for weak link identification")
         return None
 
-    valid_players = []
-
-    for player_data in player_stats_list:
-        if not player_data.get('records') or not player_data['records']:
-            continue
-
-        record = player_data['records'][0]
-
-        # Extract combat metrics
-        combat = record.get('combat', {})
-        games_data = record.get('games', {})
-
-        kills_data = combat.get('kills', {})
-        deaths_data = combat.get('deaths', {})
-
-        kills_total = kills_data.get('total', 0)
-        deaths_total = deaths_data.get('total', 1)
-        deaths_avg = deaths_data.get('avg', 0.0)
-
-        games_count = games_data.get('count', 0)
-
-        # Calculate K/D
-        kd_ratio = round(kills_total / deaths_total, 2) if deaths_total > 0 else 0.0
-
-        # Only consider players with significant data
-        if games_count < 3:
-            continue
-
-        valid_players.append({
-            "player_id": record.get('player_id'),
-            "nickname": None,
-            "kd_ratio": kd_ratio,
-            "deaths_per_game": round(deaths_avg, 2),
-            "games_played": games_count
-        })
-
-    if not valid_players:
-        _logger.warning("No valid player data for weak link identification")
+    df = player_stats_to_df(player_stats_list)
+    if df.empty:
         return None
+    
+    df['impact_score'] = df.apply(calculate_elite_impact_score, axis=1)
+    
+    # Filter for players with enough games
+    df_filtered = df[df['games_count'] >= 2]
+    if df_filtered.empty:
+        df_filtered = df
 
-    # Sort by K/D ratio ascending (worst first)
-    valid_players.sort(key=lambda p: p['kd_ratio'])
-
-    weak_link = valid_players[0]
-    weak_link['reason'] = "Lowest K/D and highest deaths per game"
-
-    return weak_link
+    df_filtered = df_filtered.sort_values(by='impact_score', ascending=True)
+    weak_row = df_filtered.iloc[0]
+    
+    return {
+        "player_id": weak_row['player_id'],
+        "role": weak_row['role'],
+        "kd_ratio": round(float(weak_row['kd_ratio']), 2),
+        "adr": round(float(weak_row['adr']), 1),
+        "impact_score": float(weak_row['impact_score']),
+        "reason": f"Lowest role-adjusted impact score ({weak_row['impact_score']})"
+    }
 
 
 def extract_agent_pools(player_stats_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
