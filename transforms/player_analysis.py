@@ -234,21 +234,28 @@ def extract_agent_pools(player_stats_list: List[Dict[str, Any]]) -> List[Dict[st
         player_id = record.get('player_id')
 
         # Extract agent data from raw response
-        # Note: The ingestion doesn't currently parse character data
-        # We need to extract it from the raw field
         raw_data = record.get('raw', {})
         game_data = raw_data.get('game', {})
+        unit_kills = game_data.get('unitKills', [])
 
-        # This would require parsing the GRID API structure
-        # For now, return placeholder structure
+        top_agents = []
+        for unit in unit_kills:
+            name = unit.get('unitName')
+            count = unit.get('count', {}).get('sum', 0)
+            if name and count > 0:
+                top_agents.append({"agent": name, "games": count})
+        
+        top_agents = sorted(top_agents, key=lambda x: x['games'], reverse=True)[:3]
+        total_games = sum(a['games'] for a in top_agents)
+        
+        for a in top_agents:
+            a['percentage'] = round(a['games'] / total_games, 2) if total_games > 0 else 0
+            
         player_agent_pools.append({
             "player_id": player_id,
-            "nickname": None,
-            "top_agents": [],  # Need to parse from raw data
-            "agent_pool_size": 0,
-            "specialist": False,
-            "note": "Agent pool extraction needs raw data parsing",
-            "game_data": game_data if game_data else {}
+            "top_agents": top_agents,
+            "agent_pool_size": len(top_agents),
+            "specialist": any(a['percentage'] >= 0.7 for a in top_agents)
         })
 
     return player_agent_pools
