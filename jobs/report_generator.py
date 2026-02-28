@@ -27,12 +27,12 @@ async def poll_and_process_reports() -> None:
         3. Use GeneralPromptRouter (LLM-powered) to determine the right tool/handler
         4. Execute the handler function (which calls ingestion + transform layers)
         5. Store results back to database
-        6. Update request status to 'completed' or 'failed'
+        6. Update request status to 'COMPLETED' or 'FAILED'
 
     Raises:
         Exception: Logs error and continues polling (resilient design)
     """
-    _logger.info("🚀 Starting Python Analysis Worker with LLM-powered routing...")
+    _logger.info("🚀 Starting Stratigen AI Analysis Worker with LLM-powered routing...")
     router = GeneralPromptRouter()
 
     while True:
