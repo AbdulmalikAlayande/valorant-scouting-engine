@@ -1,142 +1,159 @@
 import asyncio
+import os
+import socket
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
+
 from config.globalutilitylogger import get_logger
 from jobs.prompt_router import GeneralPromptRouter
-from storage.db import get_db_cursor
-from storage.upsert import update_report_request_status, upsert_scouting_report, create_report_request
 from models.report import ScoutingReport
-from config.settings import POLL_TIME_IN_SECONDS
+from storage.upsert import (
+    complete_report_job,
+    ensure_pending_jobs_backfilled,
+    fail_report_job,
+    claim_next_report_job,
+    update_report_job_stage,
+    update_report_request_status,
+    upsert_scouting_report,
+)
+from config.settings import (
+    POLL_TIME_IN_SECONDS,
+    REPORT_JOB_RETRY_DELAY_SECONDS,
+    WORKER_ID,
+)
 
 _logger = get_logger(__name__)
 
 
+def classify_worker_error(error_message: str) -> Tuple[str, bool]:
+    """
+    Classify worker failures into taxonomy code + retryable boolean.
+    """
+    normalized = (error_message or "").lower()
+
+    if any(k in normalized for k in ["timed out", "timeout", "rate limit", "unavailable", "connection reset"]):
+        return "RETRYABLE_PROVIDER", True
+
+    if any(k in normalized for k in ["database", "deadlock", "connection refused", "connection pool"]):
+        return "RETRYABLE_INFRA", True
+
+    if any(k in normalized for k in ["validation", "schema", "fieldundefined", "contract"]):
+        return "NON_RETRYABLE_CONTRACT", False
+
+    if any(k in normalized for k in ["forbidden", "unauthorized", "auth"]):
+        return "NON_RETRYABLE_AUTH", False
+
+    if any(k in normalized for k in ["config", "environment", "missing env"]):
+        return "NON_RETRYABLE_CONFIG", False
+
+    return "NON_RETRYABLE_DATA", False
+
+
 async def poll_and_process_reports() -> None:
     """
-    Main entry point for the Python Analysis Worker.
-
-    What: Continuously polls the report_requests table for pending natural language prompts,
-          routes them through the LLM-powered router, and executes the appropriate handler.
-
-    Why: This is the bridge between the database job queue and the LLM-powered analysis system.
-         It replaces the old rule-based routing with intelligent prompt understanding.
-
-    Architecture Flow:
-        1. Poll database for pending report requests
-        2. Extract the natural language prompt from the request
-        3. Use GeneralPromptRouter (LLM-powered) to determine the right tool/handler
-        4. Execute the handler function (which calls ingestion + transform layers)
-        5. Store results back to database
-        6. Update request status to 'COMPLETED' or 'FAILED'
-
-    Raises:
-        Exception: Logs error and continues polling (resilient design)
+    Phase 2 orchestration worker:
+      - backfills missing report_jobs for legacy pending requests
+      - claims next job using SKIP LOCKED leasing
+      - updates staged job progress and retries
     """
-    _logger.info("🚀 Starting Stratigen AI Analysis Worker with LLM-powered routing...")
+    runtime_worker_id = f"{WORKER_ID}-{socket.gethostname()}-{os.getpid()}"
+    _logger.info(f"🚀 Starting Stratigen AI Analysis Worker (orchestration mode) worker_id={runtime_worker_id}")
     router = GeneralPromptRouter()
 
     while True:
         try:
-            # Poll for pending jobs
-            _logger.info(f"Polling DB for pending jobs")
-            with get_db_cursor() as cursor:
-                cursor.execute("""
-                               SELECT id, user_prompt, created_at
-                               FROM report_requests
-                               WHERE status = 'PENDING'
-                               ORDER BY created_at
-                               LIMIT 1
-                               """)
-                job = cursor.fetchone()
+            backfilled = ensure_pending_jobs_backfilled(limit=20)
+            if backfilled:
+                _logger.info(f"Backfilled {backfilled} report_jobs from legacy pending requests")
 
-            if job:
-                request_id = job['id']
-                user_prompt = job['user_prompt']
+            job = claim_next_report_job(runtime_worker_id)
+            if not job:
+                _logger.debug("No runnable report jobs, sleeping...")
+                await asyncio.sleep(POLL_TIME_IN_SECONDS)
+                continue
 
-                _logger.info(f"Picked up job {request_id}: '{user_prompt}'")
+            job_id = job['job_id']
+            request_id = job['report_request_id']
+            user_prompt = job['user_prompt']
 
-                # Mark as processing
-                update_report_request_status(request_id, 'PROCESSING')
+            _logger.info(f"Claimed job {job_id} for request {request_id} (attempt {job['attempt']}/{job['max_attempts']}): '{user_prompt}'")
+            update_report_request_status(request_id, 'PROCESSING')
 
-                try:
-                    # Route the prompt through LLM and execute handler
-                    _logger.info(f"Routing prompt through LLM...")
-                    result = await router.resolve_user_prompt(user_prompt)
+            try:
+                update_report_job_stage(job_id, 'FEATURIZING')
+                _logger.info(f"Routing prompt through LLM for request {request_id}...")
+                result = await router.resolve_user_prompt(user_prompt)
 
-                    # Extract the structured report from result
-                    if result and isinstance(result, dict):
-                        report_data = result.get('output') or result.get('response')
+                if not (result and isinstance(result, dict)):
+                    raise ValueError("Router returned invalid result")
 
-                        if report_data and isinstance(report_data, dict):
-                            # Ensure report type is detectable
-                            if 'report_type' not in report_data:
-                                if 'player_name' in report_data:
-                                    report_data['report_type'] = 'player_performance'
-                                elif 'map_name' in report_data:
-                                    report_data['report_type'] = 'map'
-                                elif 'team_name_2' in report_data:
-                                    report_data['report_type'] = 'h2h'
-                                else:
-                                    report_data['report_type'] = 'full'
+                report_data = result.get('output') or result.get('response')
+                if not (report_data and isinstance(report_data, dict)):
+                    raise ValueError("Handler returned invalid report structure")
 
-                            # Check for errors in report_data
-                            if 'error' in report_data:
-                                raise ValueError(report_data['error'])
-
-                            # Merge report_data with its sub-analyses for full context
-                            full_context = {**report_data}
-                            if 'detailed_analysis' in report_data:
-                                full_context.update(report_data['detailed_analysis'])
-
-                            # AI Synthesis Layer (90-5-60)
-                            from transforms.insight_generator import generate_90_5_60_report
-                            _logger.info(f"Synthesizing 90-5-60 report for request {request_id}...")
-                            
-                            # Perform synthesis using the full context
-                            synthesized_report = await generate_90_5_60_report(full_context)
-                            
-                            # Merge synthesized data into report_data
-                            report_data.update(synthesized_report)
-                            
-                            # Store the report
-                            report_data['report_request_id'] = request_id
-                            finalize_report(request_id, report_data)
-                            # Mark as completed
-                            update_report_request_status(request_id, 'COMPLETED')
-                            _logger.info(f"Job {request_id} completed successfully")
-                        else:
-                            _logger.warning(f"Handler returned invalid report structure")
-                            # raise ValueError("Handler returned invalid report structure")
+                if 'report_type' not in report_data:
+                    if 'player_name' in report_data:
+                        report_data['report_type'] = 'player_performance'
+                    elif 'map_name' in report_data:
+                        report_data['report_type'] = 'map'
+                    elif 'team_name_2' in report_data:
+                        report_data['report_type'] = 'h2h'
                     else:
-                        raise ValueError("Router returned invalid result")
+                        report_data['report_type'] = 'full'
 
-                except Exception as handler_error:
-                    error_msg = str(handler_error)
-                    _logger.error(f"Job {request_id} Failed: {error_msg}")
+                if 'error' in report_data:
+                    raise ValueError(str(report_data['error']))
+
+                full_context = {**report_data}
+                if 'detailed_analysis' in report_data and isinstance(report_data['detailed_analysis'], dict):
+                    full_context.update(report_data['detailed_analysis'])
+
+                update_report_job_stage(job_id, 'SYNTHESIZING')
+                from transforms.insight_generator import generate_90_5_60_report
+                _logger.info(f"Synthesizing 90-5-60 report for request {request_id}...")
+                synthesized_report = await generate_90_5_60_report(full_context)
+                report_data.update(synthesized_report)
+
+                update_report_job_stage(job_id, 'COMPOSING')
+                report_data['report_request_id'] = request_id
+                finalize_report(request_id, report_data)
+
+                complete_report_job(job_id)
+                update_report_request_status(request_id, 'COMPLETED')
+                _logger.info(f"Job {job_id} request {request_id} completed successfully")
+
+            except Exception as handler_error:
+                error_msg = str(handler_error)
+                code, retryable = classify_worker_error(error_msg)
+                _logger.error(f"Job {job_id} failed for request {request_id}: [{code}] {error_msg}")
+
+                fail_result = fail_report_job(
+                    job_id=job_id,
+                    error_code=code,
+                    error_message=error_msg,
+                    retryable=retryable,
+                    retry_delay_seconds=REPORT_JOB_RETRY_DELAY_SECONDS,
+                )
+
+                if fail_result['state'] == 'QUEUED':
+                    # Re-queue request for retry
+                    update_report_request_status(request_id, 'PENDING', error_message=error_msg)
+                    _logger.info(
+                        f"Job {job_id} re-queued for retry (attempt {fail_result['attempt']}/{fail_result['max_attempts']})"
+                    )
+                else:
                     update_report_request_status(request_id, 'FAILED', error_message=error_msg)
-            else:
-                _logger.debug("No pending jobs, sleeping...")
 
-            # Poll every 5 seconds
             await asyncio.sleep(POLL_TIME_IN_SECONDS)
 
         except Exception as ex:
-            _logger.error(f"💥 Error in polling loop: {ex}", exc_info=True)
-            # Sleep longer on error to avoid hammering the database
+            _logger.error(f"💥 Error in orchestration loop: {ex}", exc_info=True)
             await asyncio.sleep(10)
 
 
 def start_worker():
-    """
-    Synchronous wrapper to start the async polling loop.
-
-    Usage:
-        python -m jobs.report_generator
-    """
     _logger.info("🎬 Starting Stratigen AI Engine...")
-
     try:
-        # Run the async polling loop
         asyncio.run(poll_and_process_reports())
     except KeyboardInterrupt:
         _logger.info("Commencing Graceful Worker Shutdown")
@@ -151,42 +168,17 @@ def start_worker():
 
 def execute_report_workflow(request_id, team_id, time_window: str) -> Dict[str, Any]:
     """
-    What: Orchestrates the data fetching and transformation.
-    Why: Separates the polling logic from the actual execution. It will call the ingestion layer to get raw data and the transforms layer to process it.
-
-    # Orchestrates the data pipeline for a specific report
-
-    Executes a report generation workflow based on the provided request ID, team ID,
-    and time window. This workflow is typically used for running analytics or generating
-    reports for a given team's data within a specified time period.
-
-    Args:
-        request_id (str): The unique identifier for the report generation request.
-        team_id (str): The unique identifier for the team for which the report
-            will be generated.
-        time_window (tuple): A tuple containing the start and end times defining
-            the time window for the report, in the format (start_time, end_time).
-
-    Raises:
-        ValueError: If any of the provided arguments are invalid or do not meet the
-            required conditions for the report generation workflow.
-
-    Returns:
-        Dict[str, Any]: A dictionary containing the result of the workflow execution, such as
-            the status of the report generation and potentially any relevant metadata.
+    Placeholder for future explicit stage-level execution orchestration.
     """
-    pass
+    raise NotImplementedError("execute_report_workflow is not used in phase-2 orchestration path")
 
 
 def finalize_report(request_id, report_data):
     """
-    What: Converts the final analysis into a ScoutingReport model and saves it to the scouting_reports table.
-    Why: Ensures that the results are persisted and the job status is updated to 'COMPLETED'.
+    Converts analysis into ScoutingReport and saves/upserts into scouting_reports.
     """
     _logger.info(f"Finalizing report {request_id}")
-    
-    # Prepare full analysis data for storage in metadata
-    # In the 90-5-60 framework, we store the full structured report
+
     metadata = report_data.get('metadata', {})
     if 'flash_card' in report_data:
         metadata['flash_card'] = report_data.get('flash_card')
@@ -198,42 +190,32 @@ def finalize_report(request_id, report_data):
     report_data['metadata'] = metadata
 
     try:
-        # Check if it's a scouting report
         report_types = ['full', 'map', 'player_performance', 'agent_performance']
         is_standard_report = (
-            report_data.get('report_type') in report_types or 
-            'macro_analysis' in report_data or 
-            'micro_analysis' in report_data or
-            'flash_card' in report_data
+            report_data.get('report_type') in report_types
+            or 'macro_analysis' in report_data
+            or 'micro_analysis' in report_data
+            or 'flash_card' in report_data
         )
 
         if is_standard_report:
-            # Filter report_data to only include fields present in ScoutingReport
             allowed_fields = ScoutingReport.model_fields.keys()
             filtered_data = {k: v for k, v in report_data.items() if k in allowed_fields}
-            
-            # Ensure report_request_id is present
             filtered_data['report_request_id'] = request_id
-            
+
             report = ScoutingReport(**filtered_data)
-            _logger.info(f"Report model validated for request {request_id}")
-            # Use model_dump to get cleaned data
             validated_data = report.model_dump()
             upsert_scouting_report(validated_data)
         else:
-            _logger.info(f"Report for request {request_id} is not a standard scouting report, saving as-is")
             if 'report_request_id' not in report_data:
                 report_data['report_request_id'] = request_id
             upsert_scouting_report(report_data)
     except Exception as e:
         _logger.error(f"Validation failed for report {request_id}: {e}")
-        # Fallback: save as raw data if validation fails
         if 'report_request_id' not in report_data:
             report_data['report_request_id'] = request_id
         upsert_scouting_report(report_data)
 
 
 if __name__ == '__main__':
-    # request_id_ = create_report_request("Generate a full scouting report for NRG in the last 6 months")
-    # print(f"Created request {request_id_}")
     start_worker()
