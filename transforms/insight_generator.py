@@ -346,14 +346,25 @@ def generate_weakness_exploitation_insights(weakness_analysis: Dict[str, Any]) -
 def generate_team_overview_insights(team_analysis: Dict[str, Any]) -> List[str]:
     """
     Generate high-level team performance insights.
-
-    Args:
-        team_analysis: Output from team_analysis.get_team_analysis_summary()
-
-    Returns:
-        List of overview insights
     """
     insights = []
+
+    # Pistol performance
+    pistols = team_analysis.get('pistol_rounds', {})
+    if pistols.get('overall', 0) > 0.65:
+        qual = "ELITE" if pistols.get('data_quality') == 'high' else "Strong"
+        insights.append(f"🔫 {qual} PISTOL ROUNDS: {pistols['overall']*100:.1f}% win rate. Expect them to jump ahead early in halves.")
+    elif pistols.get('overall', 0) < 0.40:
+        insights.append(f"🔫 WEAK PISTOLS: {pistols['overall']*100:.1f}% win rate. Opportunity to build economic momentum early.")
+
+    # Win Reasons
+    win_reasons = team_analysis.get('win_reasons', {})
+    if win_reasons.get('primary_method') == 'Elimination':
+        dist = win_reasons.get('distribution', {}).get('Elimination', 0)
+        if dist > 0.8:
+            insights.append(f"⚔️ PURE AIMERS: {dist*100:.0f}% of round wins come from eliminations. Avoid raw aim duels; use utility.")
+    elif win_reasons.get('primary_method') == 'BombExploded':
+        insights.append(f"💣 POST-PLANT KINGS: High bomb explosion rate. Focus on preventing the plant or fast retakes.")
 
     win_rates = team_analysis.get('win_rates', {})
     games = win_rates.get('games', {})
