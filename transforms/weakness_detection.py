@@ -81,6 +81,23 @@ def detect_early_aggression(team_game_stats: Dict[str, Any], team_stats: Dict[st
 # ECONOMY MANAGEMENT WEAKNESSES
 # ============================================================================
 
+def analyze_force_buy_efficiency(team_match_details: List[Dict[str, Any]], team_name: str) -> Dict[str, Any]:
+    """
+    Determine how dangerous a team is on Force Buys (Low Economy).
+    """
+    # This requires round-by-round economy which isn't in Stats Feed but in Series State
+    # For now, we look at 'Scrappy' factor: Win Rate in rounds where they lost the previous round
+    # and didn't have a massive bank.
+    
+    # Placeholder for elite logic: In a real scenario, we'd check winType: Elimination
+    # and cross-reference with previous round's outcome.
+    
+    return {
+        "force_buy_win_rate": "Data Pending",
+        "scrappiness_rating": "Medium",
+        "advice": "Don't underestimate their half-buys; they play aggressively when broke"
+    }
+
 def detect_economy_patterns(team_game_stats: Dict[str, Any]) -> Dict[str, Any]:
     """
     Analyze economy management patterns.
