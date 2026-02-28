@@ -68,12 +68,41 @@ async def poll_and_process_reports() -> None:
                         report_data = result.get('output') or result.get('response')
 
                         if report_data and isinstance(report_data, dict):
+                            # Ensure report type is detectable
+                            if 'report_type' not in report_data:
+                                if 'player_name' in report_data:
+                                    report_data['report_type'] = 'player_performance'
+                                elif 'map_name' in report_data:
+                                    report_data['report_type'] = 'map'
+                                elif 'team_name_2' in report_data:
+                                    report_data['report_type'] = 'h2h'
+                                else:
+                                    report_data['report_type'] = 'full'
+
+                            # Check for errors in report_data
+                            if 'error' in report_data:
+                                raise ValueError(report_data['error'])
+
+                            # Merge report_data with its sub-analyses for full context
+                            full_context = {**report_data}
+                            if 'detailed_analysis' in report_data:
+                                full_context.update(report_data['detailed_analysis'])
+
+                            # AI Synthesis Layer (90-5-60)
+                            from transforms.insight_generator import generate_90_5_60_report
+                            _logger.info(f"Synthesizing 90-5-60 report for request {request_id}...")
+                            
+                            # Perform synthesis using the full context
+                            synthesized_report = await generate_90_5_60_report(full_context)
+                            
+                            # Merge synthesized data into report_data
+                            report_data.update(synthesized_report)
+                            
                             # Store the report
                             report_data['report_request_id'] = request_id
-                            upsert_scouting_report(report_data)
                             finalize_report(request_id, report_data)
                             # Mark as completed
-                            update_report_request_status(request_id, 'completed')
+                            update_report_request_status(request_id, 'COMPLETED')
                             _logger.info(f"Job {request_id} completed successfully")
                         else:
                             _logger.warning(f"Handler returned invalid report structure")
