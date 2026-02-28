@@ -12,6 +12,7 @@ environs = "*"
 pydantic = "*"
 google-genai = "*"
 pydantic-ai = "*"
+matplotlib = "*"
 
 [dev-packages]
 
