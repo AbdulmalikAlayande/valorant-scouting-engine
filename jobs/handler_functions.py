@@ -18,6 +18,13 @@ from transforms.player_analysis import get_player_analysis_summary
 from transforms.composition_analysis import get_composition_analysis_summary
 from transforms.weakness_detection import get_weakness_detection_summary
 from transforms.insight_generator import generate_how_to_win
+from transforms.feature_builders import (
+    build_actionable_feature,
+    build_detailed_feature,
+    build_macro_feature,
+    build_micro_feature,
+    build_mid_game_feature,
+)
 
 _logger = get_logger(__name__)
 
@@ -138,91 +145,81 @@ def handle_generate_full_scouting_report(team_name: str, match_count: int, time_
 
         _logger.info(f"✓ Generated {len(insights)} insights")
 
-        # STEP 5: Package the complete report
+        # STEP 5: Build typed feature bundles from transform outputs
+        macro_feature = build_macro_feature(
+            map_analysis=map_analysis,
+            team_analysis=team_analysis,
+            composition_analysis=composition_analysis,
+            weakness_analysis=weakness_analysis,
+        )
+        mid_game_feature = build_mid_game_feature(
+            team_analysis=team_analysis,
+            weakness_analysis=weakness_analysis,
+        )
+        micro_feature = build_micro_feature(player_analysis=player_analysis)
+        actionable_feature = build_actionable_feature(insights=insights)
+        detailed_feature = build_detailed_feature(
+            team_analysis=team_analysis,
+            map_analysis=map_analysis,
+            player_analysis=player_analysis,
+            composition_analysis=composition_analysis,
+            weakness_analysis=weakness_analysis,
+        )
+
+        # STEP 6: Package the complete report
         report = {
             "team_id": team_id,
             "team_name": team.name,
             "time_window": time_window,
-
-            # MACRO ANALYSIS (The "Why")
-            "macro_analysis": {
-                "win_rates": map_analysis.get('win_rates', []),
-                "pistol_rounds": team_analysis.get('pistol_rounds'),
-                "map_vetoes": map_analysis.get('veto_strategy'),
-                "default_compositions": composition_analysis.get('default_comps', [])[:3],
-                "early_aggression": weakness_analysis.get('early_aggression'),
-                "recurring_tells": weakness_analysis.get('recurring_tells', [])
-            },
-
-            # MID-GAME ANALYSIS (The "How")
-            "mid_game_analysis": {
-                "side_balance": team_analysis.get('side_balance'),
-                "objective_control": team_analysis.get('objective_control'),
-                "economy_patterns": weakness_analysis.get('economy_patterns'),
-                "retake_efficiency": team_analysis.get('retake_efficiency')
-            },
-
-            # MICRO ANALYSIS (The "Who")
-            "micro_analysis": {
-                "star_player": player_analysis.get('star_player'),
-                "target_player": player_analysis.get('target_player'),
-                "agent_pools": player_analysis.get('agent_pools'),
-                "role_distribution": player_analysis.get('role_distribution'),
-                "rankings": player_analysis.get('rankings', [])
-            },
-
-            # ACTIONABLE INSIGHTS (The "How to Win")
-            "actionable_insights": insights,
-
-            # Full detailed analysis (for advanced users)
-            "detailed_analysis": {
-                "team": team_analysis,
-                "maps": map_analysis,
-                "players": player_analysis,
-                "compositions": composition_analysis,
-                "weaknesses": weakness_analysis
-            },
-
-            # Metadata
+            "macro_analysis": macro_feature.value.model_dump(exclude_none=True),
+            "mid_game_analysis": mid_game_feature.value.model_dump(exclude_none=True),
+            "micro_analysis": micro_feature.value.model_dump(exclude_none=True),
+            "actionable_insights": actionable_feature.items,
+            "detailed_analysis": detailed_feature.sections,
             "meta": {
                 "status": "success",
                 "generated_at": None,  # Would use datetime.now()
                 "data_sources": {
-                    "team_stats": team_stats.get('meta'),
-                    "team_game_stats": team_game_stats.get('meta'),
+                    "team_stats": team_stats.get("meta"),
+                    "team_game_stats": team_game_stats.get("meta"),
                     "player_stats_count": len(player_stats_list),
-                    "match_details_count": len(match_details_list)
-                }
+                    "match_details_count": len(match_details_list),
+                },
             },
-
             "__storage_planes": {
                 "raw": {
                     "team_stats": team_stats,
                     "team_game_stats": team_game_stats,
                     "player_stats": {
-                        "items": player_stats_list
+                        "items": player_stats_list,
                     },
                     "recent_series": recent_series,
                     "match_details": {
-                        "items": match_details_list
-                    }
+                        "items": match_details_list,
+                    },
                 },
                 "normalized": {
-                    "team_overview": team_stats.get('records', [{}])[0] if team_stats.get('records') else {},
-                    "map_overview": team_game_stats.get('records', [{}])[0] if team_game_stats.get('records') else {},
-                    "roster": roster
+                    "team_overview": team_stats.get("records", [{}])[0] if team_stats.get("records") else {},
+                    "map_overview": team_game_stats.get("records", [{}])[0] if team_game_stats.get("records") else {},
+                    "roster": roster,
                 },
                 "features": {
-                    "team_analysis": team_analysis,
-                    "map_analysis": map_analysis,
-                    "player_analysis": player_analysis,
-                    "composition_analysis": composition_analysis,
-                    "weakness_analysis": weakness_analysis,
+                    "macro_analysis": macro_feature.value.model_dump(exclude_none=True),
+                    "mid_game_analysis": mid_game_feature.value.model_dump(exclude_none=True),
+                    "micro_analysis": micro_feature.value.model_dump(exclude_none=True),
                     "actionable_insights": {
-                        "items": insights
-                    }
-                }
-            }
+                        "items": actionable_feature.items,
+                    },
+                    "detailed_analysis": detailed_feature.sections,
+                    "producer_versions": {
+                        "macro_analysis": "macro-analysis.v1",
+                        "mid_game_analysis": "mid-game-analysis.v1",
+                        "micro_analysis": "micro-analysis.v1",
+                        "actionable_insights": "actionable-insights.v1",
+                        "detailed_analysis": "detailed-analysis.v1",
+                    },
+                },
+            },
         }
 
         _logger.info(f"✅ Full scouting report generated for {team.name}")
@@ -661,4 +658,3 @@ if __name__ == '__main__':
     report = handle_generate_full_scouting_report("Team Liquid", 10, "LAST_6_MONTHS")
     with open("test_report.json", "w") as f:
         json.dump(report, f, indent=4)
-
