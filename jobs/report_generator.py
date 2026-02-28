@@ -43,7 +43,7 @@ async def poll_and_process_reports() -> None:
                 cursor.execute("""
                                SELECT id, user_prompt, created_at
                                FROM report_requests
-                               WHERE status = 'pending'
+                               WHERE status = 'PENDING'
                                ORDER BY created_at
                                LIMIT 1
                                """)
