@@ -649,6 +649,43 @@ def ingest_team_game_statistics(
             }
         }
 
+def ingest_all_maps_statistics(team_id: str, time_window: str) -> Dict[str, Any]:
+    """
+    Helper to fetch game statistics for ALL relevant maps.
+    This provides the granular data needed for veto analysis.
+    """
+    # Current VALORANT competitive map pool + common others
+    VALORANT_MAPS = [
+        "Ascent", "Bind", "Haven", "Icebox", "Lotus", "Sunset", "Abyss", "Split", "Breeze"
+    ]
+    
+    all_records = []
+    total_games = 0
+    
+    # 1. Get the global aggregate first
+    global_stats = ingest_team_game_statistics(team_id, time_window)
+    if global_stats.get('records'):
+        all_records.extend(global_stats['records'])
+        total_games = global_stats['meta'].get('game_count', 0)
+    
+    # 2. Get per-map aggregates
+    for map_name in VALORANT_MAPS:
+        map_stats = ingest_team_game_statistics(team_id, time_window, map_filter={"equals": map_name})
+        if map_stats.get('records') and map_stats['meta'].get('game_count', 0) > 0:
+            all_records.append(map_stats['records'][0])
+            
+    return {
+        "team_id": team_id,
+        "time_window": time_window,
+        "records": all_records,
+        "meta": {
+            "kind": "team_game_all_maps",
+            "status": "success",
+            "game_count": total_games,
+            "map_count": len(all_records) - 1 if len(all_records) > 1 else 0
+        }
+    }
+
 
 # python
 def ingest_player_statistics(player_id: str, time_window: str) -> Dict[str, Any]:
