@@ -242,12 +242,12 @@ if __name__ == "__main__":
     team_id = upsert_team("53625", "Team Liquid", logo_url="https://example.com/logo.png")
     print(f"✅ Team inserted/updated with ID: {team_id}")
 
-    # # Test 2: Create a report request
-    # print("\n2. Testing create_report_request...")
-    # request_id = create_report_request("53625", "Team Liquid")
-    # print(f"✅ Report request created with ID: {request_id}")
-    #
-    # # Test 3: Update status
-    # print("\n3. Testing update_report_request_status...")
-    # update_report_request_status(request_id, 'processing')
-    # print(f"✅ Status updated to 'processing'")
+    # Test 2: Create a report request
+    print("\n2. Testing create_report_request...")
+    request_id = create_report_request("Test prompt")
+    print(f"✅ Report request created with ID: {request_id}")
+
+    # Test 3: Update status
+    print("\n3. Testing update_report_request_status...")
+    update_report_request_status(request_id, 'PROCESSING')
+    print(f"✅ Status updated to 'PROCESSING'")
