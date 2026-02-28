@@ -47,7 +47,6 @@ query GetSeriesState($id: ID!) {
                 name
                 kills
                 deaths
-
             }
         }
         games {
