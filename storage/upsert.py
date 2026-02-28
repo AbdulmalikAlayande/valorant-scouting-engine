@@ -213,22 +213,22 @@ def update_report_request_status(request_id: str, status: str, error_message: st
     - Java can check status to know when done
 
     Statuses:
-        - 'pending': Waiting to be processed
-        - 'processing': Python is working on it
-        - 'completed': Report ready
-        - 'failed': Something went wrong
+        - 'PENDING': Waiting to be processed
+        - 'PROCESSING': Python is working on it
+        - 'COMPLETED': Report ready
+        - 'FAILED': Something went wrong
 
     Usage:
-        update_report_request_status(123, 'processing')
+        update_report_request_status(123, 'PROCESSING')
         # ... do work ...
-        update_report_request_status(123, 'completed')
+        update_report_request_status(123, 'COMPLETED')
     """
     with get_db_cursor() as cursor:
         cursor.execute("""
                        UPDATE report_requests
                        SET status        = %s,
                            error_message = %s,
-                           completed_at  = CASE WHEN %s IN ('completed', 'failed') THEN NOW() ELSE completed_at END
+                           completed_at  = CASE WHEN %s IN ('COMPLETED', 'FAILED') THEN NOW() ELSE completed_at END
                        WHERE id = %s
                        """, (status, error_message, status, request_id))
 
