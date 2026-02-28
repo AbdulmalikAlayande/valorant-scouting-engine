@@ -385,10 +385,18 @@ def get_team_analysis_summary(team_stats: Dict[str, Any], team_match_details: Li
         _logger.error("Invalid team_stats input")
         return {}
 
-    return {
+    team_name = team_stats.get('team_name')
+    
+    summary = {
         "win_rates": calculate_overall_win_rates(team_stats),
-        "pistol_rounds": extract_pistol_round_wr(team_stats),
+        "pistol_rounds": extract_pistol_round_wr(team_stats, team_match_details),
         "side_balance": extract_side_balance(team_stats),
         "objective_control": extract_objective_control(team_stats),
         "combat_metrics": extract_combat_metrics(team_stats)
     }
+    
+    if team_match_details and team_name:
+        summary["win_reasons"] = analyze_win_reasons(team_match_details, team_name)
+        summary["clutch_performance"] = analyze_clutch_performance(team_match_details, team_name)
+        
+    return summary
