@@ -343,13 +343,40 @@ def validate_team_stats_input(team_stats: Dict[str, Any]) -> bool:
     return True
 
 
-def get_team_analysis_summary(team_stats: Dict[str, Any]) -> Dict[str, Any]:
+def analyze_clutch_performance(team_match_details: List[Dict[str, Any]], team_name: str) -> Dict[str, Any]:
+    """
+    Analyze performance in 'clutch' situations (e.g., winning when score is close).
+    """
+    if not team_match_details:
+        return {}
+    
+    close_games = 0
+    close_game_wins = 0
+    
+    for match in team_match_details:
+        for game in match.get('games', []):
+            final_scores = [t.get('score', 0) for t in game.get('teams', [])]
+            if len(final_scores) == 2 and abs(final_scores[0] - final_scores[1]) <= 2:
+                close_games += 1
+                for t in game.get('teams', []):
+                    if t.get('name') == team_name and t.get('won'):
+                        close_game_wins += 1
+    
+    return {
+        "close_game_win_rate": round(close_game_wins / close_games, 3) if close_games > 0 else 0.0,
+        "close_games_played": close_games,
+        "ice_in_veins_rating": "High" if close_game_wins / max(close_games, 1) > 0.6 else "Standard"
+    }
+
+
+def get_team_analysis_summary(team_stats: Dict[str, Any], team_match_details: List[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Convenience function: Get ALL team-level metrics in one call.
     Used by Full Scouting Report handler.
 
     Args:
         team_stats: Output from ingest_team_statistics()
+        team_match_details: Optional list of match details for high-fidelity analysis
 
     Returns:
         Dict containing all team analysis metrics
