@@ -113,12 +113,12 @@ async def poll_and_process_reports() -> None:
                 except Exception as handler_error:
                     error_msg = str(handler_error)
                     _logger.error(f"Job {request_id} Failed: {error_msg}")
-                    update_report_request_status(request_id, 'failed', error_message=error_msg)
+                    update_report_request_status(request_id, 'FAILED', error_message=error_msg)
             else:
                 _logger.debug("No pending jobs, sleeping...")
 
             # Poll every 5 seconds
-            await asyncio.sleep(5)
+            await asyncio.sleep(POLL_TIME_IN_SECONDS)
 
         except Exception as ex:
             _logger.error(f"💥 Error in polling loop: {ex}", exc_info=True)
