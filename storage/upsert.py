@@ -2,24 +2,14 @@
 from config.globalutilitylogger import get_logger
 from storage.db import get_db_cursor
 from psycopg2.extras import Json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 _logger = get_logger(__name__)
+
 
 def upsert_team(team_id: str, team_name: str, **extra_fields):
     """
     Insert or update a team record.
-
-    Args:
-        team_id: GRID team ID
-        team_name: Team name
-        **extra_fields: logo_url, color_primary, etc.
-
-    Returns:
-        team_id (the database primary key)
-
-    Usage:
-        upsert_team("53625", "Team Liquid", logo_url="https://...")
     """
     with get_db_cursor() as cursor:
         cursor.execute(
@@ -48,33 +38,6 @@ def upsert_team(team_id: str, team_name: str, **extra_fields):
 def upsert_match(match_data: Dict[str, Any]):
     """
     Insert or update a match record.
-
-    Args:
-        match_data: Dict with keys:
-            - series_id (required)
-            - team_id (required)
-            - team_name
-            - opponent_id
-            - opponent_name
-            - map_name
-            - won
-            - kills
-            - deaths
-            - assists
-            - played_at
-
-    Returns:
-        match database ID
-
-    Usage:
-        upsert_match({
-            'series_id': '2629390',
-            'team_id': '53625',
-            'team_name': 'Team Liquid',
-            'won': True,
-            'kills': 245,
-            'deaths': 180
-        })
     """
     with get_db_cursor() as cursor:
         cursor.execute(
@@ -82,8 +45,8 @@ def upsert_match(match_data: Dict[str, Any]):
                 INSERT INTO matches (series_id, team_id, team_fk_id, team_name,
                                     opponent_id, opponent_fk_id, opponent_name,
                                     map_name, won, kills, deaths, assists, played_at)
-                VALUES (%(series_id)s, %(team_id)s, 
-                        get_or_create_team_fk(%(team_id)s, %(team_name)s), 
+                VALUES (%(series_id)s, %(team_id)s,
+                        get_or_create_team_fk(%(team_id)s, %(team_name)s),
                         %(team_name)s, %(opponent_id)s,
                         get_or_create_team_fk(%(opponent_id)s, %(opponent_name)s),
                        %(map_name)s, %(won)s, %(kills)s, %(deaths)s, %(assists)s, %(played_at)s)
@@ -109,37 +72,23 @@ def upsert_scouting_report(report_data: Dict[str, Any]):
     """
     _logger.info(f"Upserting scouting report for request {report_data.get('report_request_id')}")
     with get_db_cursor() as cursor:
-        # Check if exists
         cursor.execute("SELECT id FROM scouting_reports WHERE report_request_id = %s", (report_data.get('report_request_id'),))
         existing = cursor.fetchone()
-        
-        # Prepare full analysis data for storage in metadata
+
         metadata = report_data.get('metadata', {})
-        # Ensure structural tiers are preserved if present in top-level
-        if report_data.get('macro_analysis'): metadata['macro_analysis'] = report_data.get('macro_analysis')
-        if report_data.get('mid_game_analysis'): metadata['mid_game_analysis'] = report_data.get('mid_game_analysis')
-        if report_data.get('micro_analysis'): metadata['micro_analysis'] = report_data.get('micro_analysis')
-        
-        # 90-5-60 tiered architecture storage
+        if report_data.get('macro_analysis'):
+            metadata['macro_analysis'] = report_data.get('macro_analysis')
+        if report_data.get('mid_game_analysis'):
+            metadata['mid_game_analysis'] = report_data.get('mid_game_analysis')
+        if report_data.get('micro_analysis'):
+            metadata['micro_analysis'] = report_data.get('micro_analysis')
+
         flash_card = report_data.get('flash_card')
         coach_read = report_data.get('coach_read')
         analyst_appendix = report_data.get('analyst_appendix')
-        
-        # Summary text for quick display (flash_card game plan)
-        summary_text = report_data.get('summary', '')
-        if not summary_text and flash_card:
-            summary_text = " | ".join(flash_card.get('game_plan', []))
 
         db_params = {
             'report_request_id': report_data.get('report_request_id'),
-            'total_matches': report_data.get('total_matches', 0),
-            'total_games': report_data.get('total_games', 0),
-            'win_rate': report_data.get('win_rate', 0.0),
-            'current_streak': report_data.get('current_streak', 0),
-            'top_agents': Json(report_data.get('top_agents', [])),
-            'map_performance': Json(report_data.get('map_performance', {})),
-            'player_stats': Json(report_data.get('player_stats', [])),
-            'actionable_insights': Json(report_data.get('actionable_insights', [])),
             'report_data': Json({
                 'flash_card': flash_card,
                 'coach_read': coach_read,
@@ -147,9 +96,6 @@ def upsert_scouting_report(report_data: Dict[str, Any]):
                 'metadata': metadata
             }),
             'report_type': report_data.get('report_type', 'full'),
-            'team_id': report_data.get('team_id'),
-            'team_name': report_data.get('team_name'),
-            'time_window': report_data.get('time_window', 'LAST_3_MONTHS'),
             'generated_report': report_data.get('generated_report', '')
         }
 
@@ -174,80 +120,227 @@ def upsert_scouting_report(report_data: Dict[str, Any]):
         return result['id']
 
 
-# storage/upsert.py (UPDATE THIS FUNCTION)
-
 def create_report_request(user_prompt: str) -> int:
     """
-    Create a new report generation request with a natural language prompt.
-
-    Args:
-        user_prompt: Natural language prompt (e.g., "How does Team Liquid perform on Ascent?")
-
-    Returns:
-        request_id for tracking
-
-    Usage:
-        request_id = create_report_request("Generate scouting report for Team Liquid")
+    Create a new report request and queue a report job.
     """
     import uuid
     public_id = str(uuid.uuid4())
     with get_db_cursor() as cursor:
-        cursor.execute("""
-                       INSERT INTO report_requests (user_prompt, status, public_id)
-                       VALUES (%s, 'PENDING', %s)
-                       RETURNING id
-                       """, (user_prompt, public_id))
-
+        cursor.execute(
+            """
+            INSERT INTO report_requests (user_prompt, status, public_id)
+            VALUES (%s, 'PENDING', %s)
+            RETURNING id
+            """,
+            (user_prompt, public_id)
+        )
         result = cursor.fetchone()
-        _logger.info(f"Report creation result: {result}")
-        _logger.info(f"Report creation result ID: {result['id']}")
-        return result['id']
+        request_id = result['id']
+
+        cursor.execute(
+            """
+            INSERT INTO report_jobs (report_request_id, state, current_stage, attempt, max_attempts)
+            VALUES (%s, 'QUEUED', 'INGESTING', 0, 5)
+            ON CONFLICT (report_request_id) DO NOTHING
+            """,
+            (request_id,)
+        )
+
+        _logger.info(f"Report creation result ID: {request_id}")
+        return request_id
 
 
-def update_report_request_status(request_id: str, status: str, error_message: str = None):
+def ensure_pending_jobs_backfilled(limit: int = 10) -> int:
     """
-    Update the status of a report request.
-
-    Why this exists:
-    - Python updates status as it processes
-    - Java can check status to know when done
-
-    Statuses:
-        - 'PENDING': Waiting to be processed
-        - 'PROCESSING': Python is working on it
-        - 'COMPLETED': Report ready
-        - 'FAILED': Something went wrong
-
-    Usage:
-        update_report_request_status(123, 'PROCESSING')
-        # ... do work ...
-        update_report_request_status(123, 'COMPLETED')
+    Backfill report_jobs for legacy PENDING report_requests that do not yet have job rows.
     """
     with get_db_cursor() as cursor:
-        cursor.execute("""
-                       UPDATE report_requests
-                       SET status        = %s,
-                           error_message = %s,
-                           completed_at  = CASE WHEN %s IN ('COMPLETED', 'FAILED') THEN NOW() ELSE completed_at END
-                       WHERE id = %s
-                       """, (status, error_message, status, request_id))
+        cursor.execute(
+            """
+            WITH pending_requests AS (
+                SELECT rr.id
+                FROM report_requests rr
+                LEFT JOIN report_jobs rj ON rj.report_request_id = rr.id
+                WHERE rr.status = 'PENDING'
+                  AND rj.id IS NULL
+                ORDER BY rr.created_at
+                LIMIT %s
+            )
+            INSERT INTO report_jobs (report_request_id, state, current_stage, attempt, max_attempts)
+            SELECT id, 'QUEUED', 'INGESTING', 0, 5
+            FROM pending_requests
+            ON CONFLICT (report_request_id) DO NOTHING
+            RETURNING id
+            """,
+            (limit,)
+        )
+        inserted = cursor.fetchall()
+        return len(inserted)
+
+
+def claim_next_report_job(worker_id: str, lock_ttl_minutes: int = 10) -> Optional[Dict[str, Any]]:
+    """
+    Claim the next queued job using SKIP LOCKED semantics.
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            WITH candidate AS (
+                SELECT rj.id
+                FROM report_jobs rj
+                JOIN report_requests rr ON rr.id = rj.report_request_id
+                WHERE rr.status IN ('PENDING', 'PROCESSING')
+                  AND COALESCE(rj.next_run_at, NOW()) <= NOW()
+                  AND rj.attempt < rj.max_attempts
+                  AND (
+                        rj.state = 'QUEUED'
+                        OR (rj.state = 'RUNNING' AND rj.locked_at < NOW() - (%s || ' minutes')::interval)
+                  )
+                ORDER BY rr.created_at
+                FOR UPDATE SKIP LOCKED
+                LIMIT 1
+            )
+            UPDATE report_jobs rj
+            SET state = 'RUNNING',
+                current_stage = 'INGESTING',
+                attempt = rj.attempt + 1,
+                locked_by = %s,
+                locked_at = NOW(),
+                last_modified_at = NOW()
+            FROM candidate c
+            WHERE rj.id = c.id
+            RETURNING rj.id, rj.report_request_id, rj.attempt, rj.max_attempts
+            """,
+            (lock_ttl_minutes, worker_id)
+        )
+        claimed = cursor.fetchone()
+        if not claimed:
+            return None
+
+        cursor.execute(
+            """
+            SELECT id, user_prompt, status, created_at
+            FROM report_requests
+            WHERE id = %s
+            """,
+            (claimed['report_request_id'],)
+        )
+        request_row = cursor.fetchone()
+        if not request_row:
+            return None
+
+        return {
+            'job_id': claimed['id'],
+            'report_request_id': claimed['report_request_id'],
+            'attempt': claimed['attempt'],
+            'max_attempts': claimed['max_attempts'],
+            'user_prompt': request_row['user_prompt'],
+            'request_status': request_row['status'],
+            'created_at': request_row['created_at']
+        }
+
+
+def update_report_job_stage(job_id: int, stage: str):
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE report_jobs
+            SET current_stage = %s,
+                last_modified_at = NOW()
+            WHERE id = %s
+            """,
+            (stage, job_id)
+        )
+
+
+def complete_report_job(job_id: int):
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE report_jobs
+            SET state = 'COMPLETED',
+                current_stage = 'READY',
+                locked_by = NULL,
+                locked_at = NULL,
+                last_modified_at = NOW()
+            WHERE id = %s
+            """,
+            (job_id,)
+        )
+
+
+def fail_report_job(
+    job_id: int,
+    error_code: str,
+    error_message: str,
+    retryable: bool,
+    retry_delay_seconds: int,
+) -> Dict[str, Any]:
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT attempt, max_attempts FROM report_jobs WHERE id = %s", (job_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {'state': 'FAILED', 'attempt': 0, 'max_attempts': 0}
+
+        attempt = row['attempt']
+        max_attempts = row['max_attempts']
+        can_retry = retryable and attempt < max_attempts
+
+        if can_retry:
+            cursor.execute(
+                """
+                UPDATE report_jobs
+                SET state = 'QUEUED',
+                    current_stage = 'INGESTING',
+                    next_run_at = NOW() + (%s || ' seconds')::interval,
+                    locked_by = NULL,
+                    locked_at = NULL,
+                    last_error_code = %s,
+                    last_error_message = %s,
+                    retryable = TRUE,
+                    last_modified_at = NOW()
+                WHERE id = %s
+                """,
+                (retry_delay_seconds, error_code, error_message, job_id)
+            )
+            return {'state': 'QUEUED', 'attempt': attempt, 'max_attempts': max_attempts}
+
+        cursor.execute(
+            """
+            UPDATE report_jobs
+            SET state = 'FAILED',
+                current_stage = 'FAILED',
+                locked_by = NULL,
+                locked_at = NULL,
+                last_error_code = %s,
+                last_error_message = %s,
+                retryable = %s,
+                last_modified_at = NOW()
+            WHERE id = %s
+            """,
+            (error_code, error_message, retryable, job_id)
+        )
+        return {'state': 'FAILED', 'attempt': attempt, 'max_attempts': max_attempts}
+
+
+def update_report_request_status(request_id: int, status: str, error_message: str = None):
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE report_requests
+            SET status        = %s,
+                error_message = %s,
+                completed_at  = CASE WHEN %s IN ('COMPLETED', 'FAILED') THEN NOW() ELSE NULL END
+            WHERE id = %s
+            """,
+            (status, error_message, status, request_id)
+        )
 
 
 if __name__ == "__main__":
-    # Test upsert functions
     print("🧪 Testing upsert functions...")
-
-    # Test 1: Upsert team
-    print("\n1. Testing upsert_team...")
-    team_id = upsert_team("53625", "Team Liquid", logo_url="https://example.com/logo.png")
-    print(f"✅ Team inserted/updated with ID: {team_id}")
-
-    # Test 2: Create a report request
-    print("\n2. Testing create_report_request...")
     request_id = create_report_request("Test prompt")
     print(f"✅ Report request created with ID: {request_id}")
-
-    # Test 3: Update status
-    print("\n3. Testing update_report_request_status...")
     update_report_request_status(request_id, 'PROCESSING')
-    print(f"✅ Status updated to 'PROCESSING'")
+    print("✅ Status updated to 'PROCESSING'")
