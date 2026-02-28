@@ -31,16 +31,70 @@ def extract_pistol_round_wr(team_stats: Dict[str, Any], team_match_details: List
             "data_quality": "missing"
         }
 
-    record = team_stats['records'][0]
+    # If we have match details, use real segment data (Round 1 and Round 13)
+    if team_match_details:
+        pistol_rounds = []
+        team_name = team_stats.get('team_name')
+        
+        for match in team_match_details:
+            for game in match.get('games', []):
+                for segment in game.get('segments', []):
+                    # Round 1 and Round 13 are pistol rounds in VALORANT
+                    if segment.get('sequence_number') in [1, 13]:
+                        for st in segment.get('teams', []):
+                            if team_name and st.get('name') == team_name:
+                                pistol_rounds.append({
+                                    "won": st.get('won'),
+                                    "side": st.get('side')
+                                })
+        
+        if pistol_rounds:
+            df = pd.DataFrame(pistol_rounds)
+            overall_wr = df['won'].mean()
+            attack_wr = df[df['side'].str.lower() == 'attack']['won'].mean() if not df[df['side'].str.lower() == 'attack'].empty else 0.0
+            defense_wr = df[df['side'].str.lower() == 'defense']['won'].mean() if not df[df['side'].str.lower() == 'defense'].empty else 0.0
+            
+            return {
+                "overall": round(float(overall_wr), 3),
+                "attack": round(float(attack_wr), 3),
+                "defense": round(float(defense_wr), 3),
+                "count": len(pistol_rounds),
+                "data_quality": "high"
+            }
 
-    # GRID doesn't provide pistol-specific data
-    # Using attack/defense win rates as proxy
+    # Fallback to proxy
+    record = team_stats['records'][0]
     return {
-        "overall": record.get('game_win_rate', 0.0) / 100,  # Convert percentage to decimal
+        "overall": record.get('game_win_rate', 0.0) / 100,
         "attack": record.get('attack_win_rate', 0.0) / 100,
         "defense": record.get('defense_win_rate', 0.0) / 100,
-        "data_quality": "proxy",  # Flag for future improvement
-        "note": "Using attack/defense WR as proxy - GRID doesn't provide pistol-specific data"
+        "data_quality": "proxy",
+        "note": "Using attack/defense WR as proxy - actual match details not provided"
+    }
+
+def analyze_win_reasons(team_match_details: List[Dict[str, Any]], team_name: str) -> Dict[str, Any]:
+    """
+    Analyze WHY a team wins rounds (Elimination, Bomb Explosion, Defusal, Time).
+    """
+    if not team_match_details or not team_name:
+        return {}
+
+    reasons = []
+    for match in team_match_details:
+        for game in match.get('games', []):
+            for segment in game.get('segments', []):
+                for st in segment.get('teams', []):
+                    if st.get('name') == team_name and st.get('won'):
+                        reasons.append(st.get('win_type'))
+
+    if not reasons:
+        return {"status": "insufficient_data"}
+
+    df = pd.Series(reasons).value_counts(normalize=True).to_dict()
+    return {
+        "distribution": {k: round(v, 3) for k, v in df.items()},
+        "primary_method": max(df, key=df.get) if df else "unknown",
+        "sample_size": len(reasons)
     }
 
 
