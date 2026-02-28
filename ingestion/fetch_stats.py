@@ -791,6 +791,8 @@ def ingest_player_statistics(player_id: str, time_window: str) -> Dict[str, Any]
                 "deaths": {"total": deaths_total, "avg": deaths_avg, "min": deaths_min, "max": deaths_max},
                 "kill_assists_given": {"total": kag_total, "avg": kag_avg},
                 "kill_assists_received": {"total": kar_total, "avg": kar_avg},
+                "damage_dealt": {"total": damage_dealt_total, "avg": damage_dealt_avg},
+                "damage_received": {"total": damage_received_total, "avg": damage_received_avg},
             },
             "objectives": {
                 "plant_avg": plant_avg,
