@@ -291,6 +291,28 @@ def _normalize_games(games: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 }
             )
 
+        segments_out = []
+        for segment in _safe_list(g.get("segments")):
+            segment = _safe_dict(segment)
+            seg_teams_out = []
+            for st in _safe_list(segment.get("teams")):
+                st = _safe_dict(st)
+                seg_teams_out.append({
+                    "id": st.get("id"),
+                    "name": st.get("name"),
+                    "won": st.get("won"),
+                    "side": st.get("side"),
+                    "win_type": st.get("winType"),
+                    "first_kill": st.get("firstKill")
+                })
+            
+            segments_out.append({
+                "id": segment.get("id"),
+                "type": segment.get("type"),
+                "sequence_number": segment.get("sequenceNumber"),
+                "teams": seg_teams_out
+            })
+
         normalized_games.append(
             {
                 "game_id": g.get("id"),
