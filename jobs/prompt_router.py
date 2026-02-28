@@ -49,6 +49,7 @@ class MapAnalysisTool(BaseModel):
     """Analyzes a team's performance on a specific map."""
     team_name: str = Field(..., description="The name of the esports team")
     map_name: str = Field(..., description="The specific map name (e.g., 'Ascent', 'Bind', 'Haven')")
+    time_window: str = Field("LAST_6_MONTHS", description="Time period: 'LAST_MONTH', 'LAST_3_MONTHS', 'LAST_6_MONTHS', or 'LAST_YEAR'")
 
 class TeamHeadToHeadAnalysisTool(BaseModel):
     """Analyzes a team's performance against another team."""
