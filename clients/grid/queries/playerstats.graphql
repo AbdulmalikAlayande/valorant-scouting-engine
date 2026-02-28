@@ -77,6 +77,15 @@ query GetPlayerStatistics($playerId: ID!, $filter: PlayerStatisticsFilter!) {
             }
         }
         game {
+            __typename
+            ... on PlayerGameStatisticsVal {
+                damageDealt {
+                    ...StatBlock
+                }
+                damageTaken {
+                    ...StatBlock
+                }
+            }
             count
             money {
                 ...StatBlock
