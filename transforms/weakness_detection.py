@@ -3,66 +3,77 @@ Identifies exploitable patterns and weaknesses in team performance.
 Answers: "How can we exploit them?"
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
+import numpy as np
 
 from config.globalutilitylogger import get_logger
 
 _logger = get_logger(__name__)
 
+# Global Contextual Benchmarks (Typical Professional VALORANT averages)
+BENCHMARKS = {
+    "first_blood_rate": 0.50,
+    "first_death_rate": 0.50,
+    "win_rate": 0.50,
+    "pistol_win_rate": 0.50,
+    "attack_win_rate": 0.48,
+    "defense_win_rate": 0.52,
+    "clutch_win_rate": 0.15, # 1vX situations
+}
 
 # ============================================================================
 # EARLY GAME WEAKNESSES
 # ============================================================================
 
-def detect_early_aggression(team_game_stats: Dict[str, Any]) -> Dict[str, Any]:
+def detect_early_aggression(team_game_stats: Dict[str, Any], team_stats: Dict[str, Any] = None) -> Dict[str, Any]:
     """
-    Detect if a team is aggressive early (first bloods).
-
-    High first blood % = aggressive openers
-    Low first blood % = passive/reactive
-
-    Args:
-        team_game_stats: Output from ingest_team_game_statistics()
-
-    Returns:
-        {
-            "first_blood_rate": 0.58,
-            "aggression_level": "high", # "high" (>55%), "medium" (45-55%), "low" (<45%)
-            "exploitable": True,
-            "counter_strategy": "Play passive early, wait for their aggression"
-        }
+    Detect if a team is aggressive early (first bloods) and if it's DISCIPLINED.
+    Disciplined Aggression = High First Blood % AND High Win % when FB occurs.
+    Feeding = High First Death % or Low Win % when FB occurs.
     """
     if not team_game_stats or not team_game_stats.get('records'):
-        _logger.warning("No team game stats for early aggression detection")
         return {
             "first_blood_rate": 0.0,
-            "aggression_level": "unknown",
+            "aggression_style": "unknown",
             "exploitable": False,
             "counter_strategy": "Insufficient data"
         }
 
     record = team_game_stats['records'][0]
-    first_blood_pct = record.get('first_bloods_percentage', 0.0) / 100
-
-    # Determine aggression level
-    if first_blood_pct > 0.55:
-        aggression_level = "high"
+    # First blood percentage in GRID is rounds where the team got the first kill
+    fb_pct = record.get('first_bloods_percentage', 0.0) / 100
+    
+    # We also need First Death if available, or we use first_bloods_percentage of opponent
+    # For now, let's look at the correlation between FB and Win Rate if we had match details
+    # Since we are in weakness_detection (aggregated), we use the benchmarks.
+    
+    diff = fb_pct - BENCHMARKS["first_blood_rate"]
+    
+    if diff > 0.08:
+        aggression_level = "High Aggression"
+        if team_stats and (team_stats['records'][0].get('game_win_rate', 0) / 100) > 0.55:
+            style = "Disciplined Aggression"
+            exploitable = True
+            counter = "Play for the trade - don't take 1v1 duels, use utility to stop their initial hit"
+        else:
+            style = "High Risk / Feeding"
+            exploitable = True
+            counter = "Punish over-extensions - hold passive angles and wait for them to dry-peek"
+    elif diff < -0.08:
+        style = "Passive / Reactive"
         exploitable = True
-        counter_strategy = "Play passive early rounds - let them over-extend, then trade"
-    elif first_blood_pct >= 0.45:
-        aggression_level = "medium"
-        exploitable = False
-        counter_strategy = "Balanced approach - match their tempo"
+        counter = "Take map control early - they will concede space, use it to set up traps"
     else:
-        aggression_level = "low"
-        exploitable = True
-        counter_strategy = "Apply early pressure - they're reactive, force them to adapt"
+        style = "Balanced"
+        exploitable = False
+        counter = "Match their tempo - no clear early game bias"
 
     return {
-        "first_blood_rate": round(first_blood_pct, 3),
-        "aggression_level": aggression_level,
+        "first_blood_rate": round(fb_pct, 3),
+        "deviation_from_pro_avg": round(diff, 3),
+        "aggression_style": style,
         "exploitable": exploitable,
-        "counter_strategy": counter_strategy
+        "counter_strategy": counter
     }
 
 
