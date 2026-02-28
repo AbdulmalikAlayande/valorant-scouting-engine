@@ -534,11 +534,18 @@ def ingest_team_game_statistics(
         avg_game_duration_seconds = _parse_duration_to_seconds(duration_avg_str)
 
         # Build normalized game statistics
+        # Extract map name from filter if present
+        map_name = None
+        if map_filter:
+            if isinstance(map_filter, dict):
+                map_name = map_filter.get("equals") or map_filter.get("contains")
+            else:
+                map_name = str(map_filter)
+
         game_data = {
-            # Identifiers
             "team_id": team_id,
             "time_window": time_window,
-            "map_filter": map_filter,
+            "map_filter": map_name,
 
             # Game count and wins
             "game_count": game_count,
