@@ -1,7 +1,7 @@
 [project]
-name = "scouting_report_generator"
+name = "stratigen_ai"
 version = "1.0.0"
-description = "Scouting report generation tool for esport teams, staffs and coaches"
+description = "Intelligent scouting and tactical analysis engine for competitive VALORANT"
 requires_python = "3.13"
 dependencies = [
 
