@@ -177,20 +177,63 @@ def execute_report_workflow(request_id, team_id, time_window: str) -> Dict[str, 
     """
     pass
 
+
 def finalize_report(request_id, report_data):
     """
     What: Converts the final analysis into a ScoutingReport model and saves it to the scouting_reports table.
-    Why: Ensures that the results are persisted and the job status is updated to 'completed'.
+    Why: Ensures that the results are persisted and the job status is updated to 'COMPLETED'.
     """
     _logger.info(f"Finalizing report {request_id}")
-    report = ScoutingReport(**report_data)
-    _logger.info(f"Report saved to DB: {report}")
+    
+    # Prepare full analysis data for storage in metadata
+    # In the 90-5-60 framework, we store the full structured report
+    metadata = report_data.get('metadata', {})
+    if 'flash_card' in report_data:
+        metadata['flash_card'] = report_data.get('flash_card')
+    if 'coach_read' in report_data:
+        metadata['coach_read'] = report_data.get('coach_read')
+    if 'analyst_appendix' in report_data:
+        metadata['analyst_appendix'] = report_data.get('analyst_appendix')
+
+    report_data['metadata'] = metadata
+
+    try:
+        # Check if it's a scouting report
+        report_types = ['full', 'map', 'player_performance', 'agent_performance']
+        is_standard_report = (
+            report_data.get('report_type') in report_types or 
+            'macro_analysis' in report_data or 
+            'micro_analysis' in report_data or
+            'flash_card' in report_data
+        )
+
+        if is_standard_report:
+            # Filter report_data to only include fields present in ScoutingReport
+            allowed_fields = ScoutingReport.model_fields.keys()
+            filtered_data = {k: v for k, v in report_data.items() if k in allowed_fields}
+            
+            # Ensure report_request_id is present
+            filtered_data['report_request_id'] = request_id
+            
+            report = ScoutingReport(**filtered_data)
+            _logger.info(f"Report model validated for request {request_id}")
+            # Use model_dump to get cleaned data
+            validated_data = report.model_dump()
+            upsert_scouting_report(validated_data)
+        else:
+            _logger.info(f"Report for request {request_id} is not a standard scouting report, saving as-is")
+            if 'report_request_id' not in report_data:
+                report_data['report_request_id'] = request_id
+            upsert_scouting_report(report_data)
+    except Exception as e:
+        _logger.error(f"Validation failed for report {request_id}: {e}")
+        # Fallback: save as raw data if validation fails
+        if 'report_request_id' not in report_data:
+            report_data['report_request_id'] = request_id
+        upsert_scouting_report(report_data)
+
 
 if __name__ == '__main__':
-    request_id_ = create_report_request("Generate a full scouting report for NRG in the last 6 months")
-    request_id_1 = create_report_request("Generate a full scouting report for Cloud9 in the last 10 matches")
-    request_id_2 = create_report_request("Scout Sentinels based on last 6 months")
-    request_id_3 = create_report_request("How do we beat Cloud9?")
-
-    print(f"Created request {request_id_}")
+    # request_id_ = create_report_request("Generate a full scouting report for NRG in the last 6 months")
+    # print(f"Created request {request_id_}")
     start_worker()
