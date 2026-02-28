@@ -142,25 +142,9 @@ class ScoutingReport(BaseModel):
         """
         Convert to format for PostgreSQL JSONB columns
         """
-        return {
-            "report_request_id": self.report_request_id,
-            "team_id": self.team_id,
-            "team_name": self.team_name,
-            "total_matches": self.total_matches,
-            "total_games": self.total_games,
-            "win_rate": self.win_rate,
-            "current_streak": self.current_streak,
-            "top_agents": [a.model_dump() for a in self.top_agents],
-            "map_performance": [m.model_dump() for m in self.map_performance],
-            "player_stats": [s.model_dump() for s in self.player_stats],
-            "top_compositions": [c.model_dump() for c in self.top_compositions],
-            "head_to_head": self.head_to_head.model_dump() if self.head_to_head else None,
-            "actionable_insights": self.actionable_insights,
-            "time_window": self.time_window,
-            "report_type": self.report_type,
-            "metadata": self.metadata,
-            "created_at": self.created_at.isoformat()
-        }
+        data = self.model_dump()
+        data["created_at"] = self.created_at.isoformat()
+        return data
 
 
 class ReportRequest(BaseModel):
