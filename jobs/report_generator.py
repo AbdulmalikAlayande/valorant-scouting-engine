@@ -18,6 +18,7 @@ from storage.upsert import (
     upsert_feature_payload,
     upsert_normalized_payload,
     upsert_raw_payload,
+    upsert_report_artifact,
     upsert_scouting_report,
 )
 from config.settings import (
@@ -279,6 +280,8 @@ def finalize_report(request_id, report_data):
 
     report_data['metadata'] = metadata
 
+    report_payload_for_plane: Dict[str, Any] = {}
+
     try:
         report_types = ['full', 'map', 'player_performance', 'agent_performance']
         is_standard_report = (
@@ -295,19 +298,33 @@ def finalize_report(request_id, report_data):
 
             report = ScoutingReport(**filtered_data)
             validated_data = report.model_dump()
+            report_payload_for_plane = validated_data
             upsert_scouting_report(validated_data)
         else:
             if 'report_request_id' not in report_data:
                 report_data['report_request_id'] = request_id
+            report_payload_for_plane = report_data
             upsert_scouting_report(report_data)
     except Exception as e:
         _logger.error(f"Validation failed for report {request_id}: {e}")
         if 'report_request_id' not in report_data:
             report_data['report_request_id'] = request_id
+        report_payload_for_plane = report_data
         upsert_scouting_report(report_data)
+
+    model_version = metadata.get('model_version') if isinstance(metadata, dict) else None
+    feature_version = metadata.get('feature_version') if isinstance(metadata, dict) else None
+
+    upsert_report_artifact(
+        report_request_id=request_id,
+        report_type=report_data.get('report_type', 'full'),
+        report_payload=report_payload_for_plane,
+        summary=report_data.get('generated_report', ''),
+        model_version=model_version,
+        feature_version=feature_version,
+    )
+
 
 if __name__ == '__main__':
     start_worker()
-
-
 
