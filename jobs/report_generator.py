@@ -56,7 +56,7 @@ async def poll_and_process_reports() -> None:
                 _logger.info(f"Picked up job {request_id}: '{user_prompt}'")
 
                 # Mark as processing
-                update_report_request_status(request_id, 'processing')
+                update_report_request_status(request_id, 'PROCESSING')
 
                 try:
                     # Route the prompt through LLM and execute handler
