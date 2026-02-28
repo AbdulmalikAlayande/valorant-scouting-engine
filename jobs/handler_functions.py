@@ -71,7 +71,7 @@ def handle_generate_full_scouting_report(team_name: str, match_count: int, time_
         team_stats = ingest_team_statistics(team_id=team_id, time_window=time_window)
 
         # Game-level stats (all maps)
-        team_game_stats = ingest_team_game_statistics(
+        team_game_stats = ingest_all_maps_statistics(
             team_id=team_id,
             time_window=time_window
         )
