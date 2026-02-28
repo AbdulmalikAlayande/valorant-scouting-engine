@@ -95,26 +95,33 @@ def handle_generate_full_scouting_report(team_name: str, match_count: int, time_
         # Get recent series for composition analysis
         recent_series = ingest_team_recent_series(team_id=team_id, limit=5)
 
-        # Get series state for at least one series
-        series_state = {'series': None}
+        # Get series state for multiple matches for tactical precision
+        match_details_list = []
         if recent_series.get('series'):
-            for series in recent_series['series']:
+            for series in recent_series['series'][:5]:  # Analyze up to 5 recent series
                 series_id = series.get('series_id')
                 if series_id:
-                    series_state = ingest_series_state(series_id)
-                    if series_state.get('series'):
-                        break  # Got valid series state
+                    details = ingest_series_state(series_id)
+                    if details.get('series'):
+                        match_details_list.append(details['series'])
 
-        _logger.info("✓ All data fetched successfully")
+        _logger.info(f"✓ Data fetched (included {len(match_details_list)} match details)")
 
         # STEP 3: Run all transform analyses
         _logger.info("Step 3: Running transform analyses")
 
-        team_analysis = get_team_analysis_summary(team_stats)
+        # Inject team name for better identification in match details
+        team_stats['team_name'] = team.name
+        
+        team_analysis = get_team_analysis_summary(team_stats, match_details_list)
         map_analysis = get_map_analysis_summary(team_game_stats)
         player_analysis = get_player_analysis_summary(player_stats_list)
-        composition_analysis = get_composition_analysis_summary(series_state)
-        weakness_analysis = get_weakness_detection_summary(team_stats, team_game_stats)
+        
+        # Composition analysis still needs a series_state object (we use the most recent)
+        latest_series_state = {'series': match_details_list[0]} if match_details_list else {'series': None}
+        composition_analysis = get_composition_analysis_summary(latest_series_state)
+        
+        weakness_analysis = get_weakness_detection_summary(team_stats, team_game_stats, match_details_list)
 
         _logger.info("✓ All analyses complete")
 
