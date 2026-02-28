@@ -191,7 +191,7 @@ def handle_generate_full_scouting_report(team_name: str, match_count: int, time_
                     "team_stats": team_stats.get('meta'),
                     "team_game_stats": team_game_stats.get('meta'),
                     "player_stats_count": len(player_stats_list),
-                    "series_state": series_state.get('meta')
+                    "match_details_count": len(match_details_list)
                 }
             }
         }
