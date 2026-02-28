@@ -23,3 +23,7 @@ DATABASES = {
 }
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+WORKER_ID = env.str("WORKER_ID", default="engine-worker")
+REPORT_JOB_MAX_ATTEMPTS = env.int("REPORT_JOB_MAX_ATTEMPTS", default=5)
+REPORT_JOB_RETRY_DELAY_SECONDS = env.int("REPORT_JOB_RETRY_DELAY_SECONDS", default=30)
