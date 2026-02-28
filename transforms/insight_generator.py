@@ -466,23 +466,15 @@ def generate_how_to_win(
 ) -> List[str]:
     """
     Master function: Generate complete "How to Win" insights.
-
-    This combines ALL analysis outputs into a prioritized list of
-    actionable recommendations.
-
-    Args:
-        team_analysis: Output from team_analysis.get_team_analysis_summary()
-        map_analysis: Output from map_analysis.get_map_analysis_summary()
-        player_analysis: Output from player_analysis.get_player_analysis_summary()
-        composition_analysis: Output from composition_analysis.get_composition_analysis_summary()
-        weakness_analysis: Output from weakness_detection.get_weakness_detection_summary()
-
-    Returns:
-        List of prioritized, actionable insights (max 10)
     """
     _logger.info("Generating 'How to Win' insights")
 
     all_insights = []
+
+    # Counter-Strat Engine
+    counter_strat = generate_counter_strat(team_analysis, weakness_analysis)
+    for plan in counter_strat.get('recommended_game_plan', []):
+        all_insights.append(f"🎯 STRATEGY: {plan}")
 
     # Generate insights from each category
     all_insights.extend(generate_map_veto_insights(map_analysis))
