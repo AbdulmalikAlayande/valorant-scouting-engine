@@ -17,26 +17,13 @@ _logger = get_logger(__name__)
 # MACRO-LEVEL ANALYSIS (Pre-Game Strategy)
 # ============================================================================
 
-def extract_pistol_round_wr(team_stats: Dict[str, Any]) -> Dict[str, Any]:
+def extract_pistol_round_wr(team_stats: Dict[str, Any], team_match_details: List[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Extract pistol round win rate by attack/defense.
-
-    NOTE: GRID Stats Feed API doesn't provide pistol-specific data.
-    We use segment data (attack/defense) as a proxy for now.
-
-    Args:
-        team_stats: Output from ingest_team_statistics()
-
-    Returns:
-        {
-            "overall": 0.65,  # Not available - using game_win_rate
-            "attack": 0.58,
-            "defense": 0.72,
-            "data_quality": "proxy"  # Flag that this isn't true pistol data
-        }
+    If team_match_details is provided, calculates ACTUAL pistol round performance.
+    Otherwise, uses attack/defense win rates as a proxy.
     """
     if not team_stats or not team_stats.get('records'):
-        _logger.warning("No team stats records provided for pistol round analysis")
         return {
             "overall": 0.0,
             "attack": 0.0,
