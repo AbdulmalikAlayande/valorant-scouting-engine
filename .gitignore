@@ -10,11 +10,11 @@ clients/**/__pycache__/**
 *.pyc
 
 logs/
-clients/response
+/clients/response
 clients/response/
 clients/errors
 clients/errors/
-agent-reference
+/agent-reference
 agent-reference/
 
 transform_test_outputs
