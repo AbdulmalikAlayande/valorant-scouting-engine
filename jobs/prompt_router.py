@@ -233,6 +233,17 @@ class GeneralPromptRouter:
 
     async def resolve_user_prompt(self, user_prompt: str):
         result = await self.agent.run(user_prompt)
+        
+        # If the result has new messages, it might mean tool calls were made and results returned
+        # result.data will contain the return value of the tool if it was the last thing
+        
         _logger.info(f"result.response: {result.response}")
         _logger.info(f"result.output: {result.output}")
-        return {"response": result.response, "output": result.output}
+        _logger.info(f"result.data: {result.data}")
+        
+        # In pydantic-ai, if a tool is called, the result of the tool is available in the message history
+        # or as the final result if configured.
+        
+        output = result.data if result.data else result.output
+        
+        return {"response": result.response, "output": output}
