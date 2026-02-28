@@ -193,6 +193,35 @@ def handle_generate_full_scouting_report(team_name: str, match_count: int, time_
                     "player_stats_count": len(player_stats_list),
                     "match_details_count": len(match_details_list)
                 }
+            },
+
+            "__storage_planes": {
+                "raw": {
+                    "team_stats": team_stats,
+                    "team_game_stats": team_game_stats,
+                    "player_stats": {
+                        "items": player_stats_list
+                    },
+                    "recent_series": recent_series,
+                    "match_details": {
+                        "items": match_details_list
+                    }
+                },
+                "normalized": {
+                    "team_overview": team_stats.get('records', [{}])[0] if team_stats.get('records') else {},
+                    "map_overview": team_game_stats.get('records', [{}])[0] if team_game_stats.get('records') else {},
+                    "roster": roster
+                },
+                "features": {
+                    "team_analysis": team_analysis,
+                    "map_analysis": map_analysis,
+                    "player_analysis": player_analysis,
+                    "composition_analysis": composition_analysis,
+                    "weakness_analysis": weakness_analysis,
+                    "actionable_insights": {
+                        "items": insights
+                    }
+                }
             }
         }
 
@@ -632,3 +661,4 @@ if __name__ == '__main__':
     report = handle_generate_full_scouting_report("Team Liquid", 10, "LAST_6_MONTHS")
     with open("test_report.json", "w") as f:
         json.dump(report, f, indent=4)
+
