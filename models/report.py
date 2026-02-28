@@ -130,9 +130,10 @@ class ScoutingReport(BaseModel):
 
     # Insights
     actionable_insights: List[str] = Field(default_factory=list)
+    detailed_analysis: Dict[str, Any] = Field(default_factory=dict)
 
     # Context
-    time_window: str
+    time_window: Optional[str] = None
     report_type: str = "full"  # full, map, tournament, etc.
     metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
