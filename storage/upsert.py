@@ -189,12 +189,14 @@ def create_report_request(user_prompt: str) -> int:
     Usage:
         request_id = create_report_request("Generate scouting report for Team Liquid")
     """
+    import uuid
+    public_id = str(uuid.uuid4())
     with get_db_cursor() as cursor:
         cursor.execute("""
-                       INSERT INTO report_requests (user_prompt, status)
-                       VALUES (%s, 'pending')
+                       INSERT INTO report_requests (user_prompt, status, public_id)
+                       VALUES (%s, 'PENDING', %s)
                        RETURNING id
-                       """, (user_prompt,))
+                       """, (user_prompt, public_id))
 
         result = cursor.fetchone()
         _logger.info(f"Report creation result: {result}")
