@@ -363,24 +363,127 @@ def detect_consistency_issues(team_stats: Dict[str, Any]) -> Dict[str, Any]:
 # AGGREGATOR FUNCTION
 # ============================================================================
 
+def detect_recurring_tells(team_match_details: List[Dict[str, Any]], team_name: str) -> List[Dict[str, Any]]:
+    """
+    Identify predictable habits or 'tells' from match details using specialized heuristics.
+    """
+    if not team_match_details or not team_name:
+        return []
+    
+    tells = []
+    
+    # 1. Anti-Eco Vulnerability (Round 2 after winning Round 1)
+    round_2_results = []
+    for match in team_match_details:
+        for game in match.get('games', []):
+            segments = sorted(game.get('segments', []), key=lambda x: x.get('sequence_number', 0))
+            if len(segments) < 2:
+                continue
+                
+            round_1_win = False
+            for st in segments[0].get('teams', []):
+                if st.get('name') == team_name and st.get('won'):
+                    round_1_win = True
+            
+            if round_1_win:
+                for st in segments[1].get('teams', []):
+                    if st.get('name') == team_name:
+                        round_2_results.append(st.get('won'))
+    
+    if round_2_results and len(round_2_results) >= 3:
+        wr = sum(round_2_results) / len(round_2_results)
+        if wr < 0.70: # Professional teams should win >80% of anti-ecos
+            tells.append({
+                "name": "Anti-Eco Vulnerability",
+                "description": f"Team struggles to convert Round 2 after winning Pistol ({wr*100:.1f}% WR)",
+                "exploit": "Always force-buy against them after losing pistol; they are vulnerable to scrappy buys."
+            })
+
+    # 2. Eco-Round Aggression ("The Tell")
+    # Detect if they push aggressively on eco rounds (indicated by high FB rate in Round 2 after loss)
+    eco_fb_attempts = 0
+    eco_fb_success = 0
+    for match in team_match_details:
+        for game in match.get('games', []):
+            segments = sorted(game.get('segments', []), key=lambda x: x.get('sequence_number', 0))
+            if len(segments) < 2: continue
+            
+            round_1_loss = False
+            for st in segments[0].get('teams', []):
+                if st.get('name') == team_name and not st.get('won'):
+                    round_1_loss = True
+            
+            if round_1_loss:
+                for st in segments[1].get('teams', []):
+                    if st.get('name') == team_name:
+                        eco_fb_attempts += 1
+                        if st.get('first_kill'):
+                            eco_fb_success += 1
+    
+    if eco_fb_attempts >= 3:
+        fb_rate = eco_fb_success / eco_fb_attempts
+        if fb_rate > 0.5:
+            tells.append({
+                "name": "Aggressive Eco Push",
+                "description": f"Consistently goes for First Bloods on Eco rounds ({fb_rate*100:.1f}% FB rate).",
+                "exploit": "Expect an aggressive push or dry-peek on their eco rounds. Play passive and use utility to stall."
+            })
+
+    # 3. Bonus Round Conversion
+    bonus_results = []
+    for match in team_match_details:
+        for game in match.get('games', []):
+            segments = sorted(game.get('segments', []), key=lambda x: x.get('sequence_number', 0))
+            if len(segments) < 3: continue
+            
+            won_first_two = True
+            for i in range(2):
+                won_round = False
+                for st in segments[i].get('teams', []):
+                    if st.get('name') == team_name and st.get('won'):
+                        won_round = True
+                if not won_round: won_first_two = False
+            
+            if won_first_two:
+                for st in segments[2].get('teams', []):
+                    if st.get('name') == team_name:
+                        bonus_results.append(st.get('won'))
+    
+    if bonus_results and len(bonus_results) >= 2:
+        bonus_wr = sum(bonus_results) / len(bonus_results)
+        if bonus_wr < 0.25:
+            tells.append({
+                "name": "Weak Bonus Conversions",
+                "description": f"Low win rate on Round 3 (Bonus) after 2-0 start ({bonus_wr*100:.1f}%).",
+                "exploit": "Play standard on your full-buy Round 3; they often play too loosely or lack utility depth here."
+            })
+
+    # 4. Ultimate Usage Efficiency (Placeholder for future expansion)
+    # If we had ult data, we'd add it here.
+
+    return tells
+
+
 def get_weakness_detection_summary(
-        team_stats: Dict[str, Any],
-        team_game_stats: Dict[str, Any]
+    team_stats: Dict[str, Any], 
+    team_game_stats: Dict[str, Any],
+    team_match_details: List[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
-    Convenience function: Get ALL weakness detections in one call.
-
-    Args:
-        team_stats: Output from ingest_team_statistics()
-        team_game_stats: Output from ingest_team_game_statistics()
-
-    Returns:
-        Dict containing all weakness analysis
+    Get a comprehensive summary of team weaknesses.
     """
-    return {
-        "early_aggression": detect_early_aggression(team_game_stats),
+    team_name = team_stats.get('team_name')
+    
+    summary = {
+        "early_aggression": detect_early_aggression(team_game_stats, team_stats),
         "economy_patterns": detect_economy_patterns(team_game_stats),
         "objective_weaknesses": detect_plant_defuse_weaknesses(team_game_stats),
         "side_weaknesses": detect_side_weaknesses(team_stats),
         "consistency_issues": detect_consistency_issues(team_stats)
     }
+    
+    if team_match_details and team_name:
+        summary["tactical_economy"] = analyze_force_buy_efficiency(team_match_details, team_name)
+        summary["recurring_tells"] = detect_recurring_tells(team_match_details, team_name)
+        
+    return summary
