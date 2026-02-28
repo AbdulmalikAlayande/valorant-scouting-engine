@@ -1,19 +1,23 @@
 import asyncio
 import os
+import re
 import socket
 import time
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
 
 from config.globalutilitylogger import get_logger
 from jobs.prompt_router import GeneralPromptRouter
 from models.report import ScoutingReport
 from storage.upsert import (
+    claim_next_report_job,
     complete_report_job,
     ensure_pending_jobs_backfilled,
     fail_report_job,
-    claim_next_report_job,
     update_report_job_stage,
     update_report_request_status,
+    upsert_feature_payload,
+    upsert_normalized_payload,
+    upsert_raw_payload,
     upsert_scouting_report,
 )
 from config.settings import (
@@ -23,6 +27,90 @@ from config.settings import (
 )
 
 _logger = get_logger(__name__)
+
+
+def _payload_key(raw_key: str) -> str:
+    normalized = re.sub(r"[^a-z0-9_]+", "_", str(raw_key or "payload").lower()).strip("_")
+    return (normalized or "payload")[:64]
+
+
+def _to_payload_dict(value: Any) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, list):
+        return {"items": value}
+    if value is None:
+        return {}
+    return {"value": value}
+
+
+def _extract_storage_planes(report_data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    explicit_planes = report_data.pop("__storage_planes", {}) if isinstance(report_data, dict) else {}
+    if not isinstance(explicit_planes, dict):
+        explicit_planes = {}
+
+    raw_plane = explicit_planes.get("raw") if isinstance(explicit_planes.get("raw"), dict) else {}
+    normalized_plane = explicit_planes.get("normalized") if isinstance(explicit_planes.get("normalized"), dict) else {}
+    feature_plane = explicit_planes.get("features") if isinstance(explicit_planes.get("features"), dict) else {}
+
+    if not normalized_plane:
+        normalized_plane = {
+            "request_context": {
+                "report_type": report_data.get("report_type", "full"),
+                "team_id": report_data.get("team_id"),
+                "team_name": report_data.get("team_name"),
+                "player_id": report_data.get("player_id"),
+                "player_name": report_data.get("player_name"),
+                "map_name": report_data.get("map_name"),
+                "time_window": report_data.get("time_window"),
+            }
+        }
+        if isinstance(report_data.get("meta"), dict):
+            normalized_plane["meta"] = report_data.get("meta")
+        if isinstance(report_data.get("detailed_analysis"), dict):
+            normalized_plane["detailed_analysis"] = report_data.get("detailed_analysis")
+
+    if not feature_plane:
+        feature_plane = {
+            "macro_analysis": _to_payload_dict(report_data.get("macro_analysis")),
+            "mid_game_analysis": _to_payload_dict(report_data.get("mid_game_analysis")),
+            "micro_analysis": _to_payload_dict(report_data.get("micro_analysis")),
+            "actionable_insights": _to_payload_dict(report_data.get("actionable_insights")),
+        }
+
+    return raw_plane, normalized_plane, feature_plane
+
+
+def _persist_storage_planes(report_request_id: int, report_data: Dict[str, Any]) -> None:
+    raw_plane, normalized_plane, feature_plane = _extract_storage_planes(report_data)
+
+    for key, payload in raw_plane.items():
+        upsert_raw_payload(
+            report_request_id=report_request_id,
+            payload_key=_payload_key(key),
+            payload=_to_payload_dict(payload),
+            source_stage='INGESTING',
+        )
+
+    for key, payload in normalized_plane.items():
+        upsert_normalized_payload(
+            report_request_id=report_request_id,
+            payload_key=_payload_key(key),
+            payload=_to_payload_dict(payload),
+            source_stage='FEATURIZING',
+        )
+
+    metadata = report_data.get("metadata") if isinstance(report_data.get("metadata"), dict) else {}
+    feature_version = metadata.get("feature_version", "features-v1")
+
+    for key, payload in feature_plane.items():
+        upsert_feature_payload(
+            report_request_id=report_request_id,
+            payload_key=_payload_key(key),
+            payload=_to_payload_dict(payload),
+            feature_version=feature_version,
+            source_stage='FEATURIZING',
+        )
 
 
 def classify_worker_error(error_message: str) -> Tuple[str, bool]:
@@ -104,12 +192,15 @@ async def poll_and_process_reports() -> None:
                 if 'error' in report_data:
                     raise ValueError(str(report_data['error']))
 
+                _persist_storage_planes(request_id, report_data)
+
                 full_context = {**report_data}
                 if 'detailed_analysis' in report_data and isinstance(report_data['detailed_analysis'], dict):
                     full_context.update(report_data['detailed_analysis'])
 
                 update_report_job_stage(job_id, 'SYNTHESIZING')
                 from transforms.insight_generator import generate_90_5_60_report
+
                 _logger.info(f"Synthesizing 90-5-60 report for request {request_id}...")
                 synthesized_report = await generate_90_5_60_report(full_context)
                 report_data.update(synthesized_report)
@@ -136,7 +227,6 @@ async def poll_and_process_reports() -> None:
                 )
 
                 if fail_result['state'] == 'QUEUED':
-                    # Re-queue request for retry
                     update_report_request_status(request_id, 'PENDING', error_message=error_msg)
                     _logger.info(
                         f"Job {job_id} re-queued for retry (attempt {fail_result['attempt']}/{fail_result['max_attempts']})"
@@ -216,6 +306,8 @@ def finalize_report(request_id, report_data):
             report_data['report_request_id'] = request_id
         upsert_scouting_report(report_data)
 
-
 if __name__ == '__main__':
     start_worker()
+
+
+
