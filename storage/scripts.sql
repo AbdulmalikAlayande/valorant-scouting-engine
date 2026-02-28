@@ -1,15 +1,37 @@
 delete from scouting_reports;
 delete from report_requests;
 --
--- alter table report_requests
---     drop column if exists user_prompt;
--- alter table report_requests
---     drop column if exists status;
--- alter table report_requests
---     add status varchar(50) default 'pending'::character varying;
--- alter table report_requests
---     add user_prompt text default ''::text not null;
-
+-- INSERT INTO report_requests (user_prompt, status, public_id) VALUES
+-- ('Generate a full scouting report for Team Liquid based on their last 15 matches.', 'PENDING', gen_random_uuid()),
+-- ('How did Sentinels perform on Ascent specifically?', 'PENDING', gen_random_uuid()),
+-- ('What''s Cloud9''s win rate on the map Bind lately?', 'PENDING', gen_random_uuid()),
+-- ('Compare TenZ vs Aspas stats in the last month.', 'PENDING', gen_random_uuid()),
+-- ('Analyze the recent form of DRX in the VCT Masters tournament.', 'PENDING', gen_random_uuid()),
+-- ('What are Team Heretics'' primary agent compositions they run most successfully?', 'PENDING', gen_random_uuid()),
+-- ('How do we exploit weaknesses in G2 Esports'' defensive setups?', 'PENDING', gen_random_uuid()),
+-- ('Give me a full H2H analysis for Fnatic vs NRG over the last 6 months.', 'PENDING', gen_random_uuid()),
+-- ('What is the typical jungle pathing for the Paper Rex jungler?', 'PENDING', gen_random_uuid()),
+-- ('Show me player stats for EG''s duelist in the last year.', 'PENDING', gen_random_uuid()),
+-- ('Provide a comprehensive scouting report for Fnatic focusing on their macro rotations and eco-round tendencies.', 'PENDING', gen_random_uuid()),
+-- ('Generate a deep-dive scouting report on Gen.G for the 2025 season, including their objective control rates.', 'PENDING', gen_random_uuid()),
+-- ('Complete team analysis for Leviatán Esports: I need to see their early game aggression and first blood percentages.', 'PENDING', gen_random_uuid()),
+-- ('Compare the performance metrics of ZmjjKK vs. Munchkin for the last 10 series.', 'PENDING', gen_random_uuid()),
+-- ('H2H analysis: Derke vs. Chronicle. Who has been more impactful in clutch situations this quarter?', 'PENDING', gen_random_uuid()),
+-- ('Analyze Team Vitality’s agent compositions on Sunset. What is their highest win-rate lineup?', 'PENDING', gen_random_uuid()),
+-- ('What compositions does Paper Rex typically run on Abyss, and what is their default defensive setup?', 'PENDING', gen_random_uuid()),
+-- ('Generate a full scouting breakdown for NRG: focus on their post-plant success and retake efficiency.', 'PENDING', gen_random_uuid()),
+-- ('Analyze T1’s recent performance: I want a full report on their map pool strength and veto logic.', 'PENDING', gen_random_uuid()),
+-- ('Scout Karmine Corp for the upcoming match: provide a full summary of their mid-game strategic patterns.', 'PENDING', gen_random_uuid());
+--
+-- -- alter table report_requests
+-- --     drop column if exists user_prompt;
+-- -- alter table report_requests
+-- --     drop column if exists status;
+-- -- alter table report_requests
+-- --     add status report_status default 'PENDING';
+-- -- alter table report_requests
+-- --     add user_prompt text default ''::text not null;
+--
 -- alter table report_requests
 --     drop column if exists team_id;
 -- alter table report_requests
