@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from clients.domain.players import get_team_players
+from clients.domain.players import get_team_players, get_player_by_name
 from clients.domain.teams import get_team_by_name, get_single_team
 from models.teams import Team
 from config.globalutilitylogger import get_logger
