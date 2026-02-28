@@ -11,8 +11,23 @@ def get_player_by_id():
     pass
 
 
-def get_player_by_name():
-    pass
+def get_player_by_name(nickname: str):
+    """
+    Query to find a player by their nickname.
+    """
+    filter_ = {"nickname": {"equals": nickname}}
+    query = load_graphql_query(query_name="player")
+
+    client = GraphQLClient(base_url=GRID_QUERY_API_URL, api_key=GRID_API_KEY)
+    variables = {"first": 1, "filter": filter_}
+    data = client.execute(query=query, variables=variables)
+
+    players_data = data.get("players", {})
+    edges = players_data.get("edges", [])
+    
+    if edges:
+        return edges[0].get("node", {})
+    return None
 
 
 def get_player_by_external_id():
