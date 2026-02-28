@@ -2,10 +2,11 @@ import json
 from typing import Any, Dict, Optional
 
 from config.globalutilitylogger import get_logger
-from ingestion.fetch_teams import ingest_team_by_name, ingest_team_players
+from ingestion.fetch_teams import ingest_team_by_name, ingest_team_players, ingest_player_by_name
 from ingestion.fetch_stats import (
     ingest_team_statistics,
     ingest_team_game_statistics,
+    ingest_all_maps_statistics,
     ingest_player_statistics
 )
 from ingestion.fetch_match_details import ingest_series_state
