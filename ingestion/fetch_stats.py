@@ -753,6 +753,16 @@ def ingest_player_statistics(player_id: str, time_window: str) -> Dict[str, Any]
         # First kill / first blood
         first_kill_pct = _extract_first_kill_percentage(game.get("firstKill", []))
 
+        # Damage
+        damage_dealt = game.get("damageDealt", {}) or {}
+        damage_dealt_total = damage_dealt.get("sum", 0)
+        damage_dealt_avg = damage_dealt.get("avg", 0.0)
+
+        # Fallback to damageTaken if damageReceived is not present
+        damage_received = game.get("damageTaken", game.get("damageReceived", {})) or {}
+        damage_received_total = damage_received.get("sum", 0)
+        damage_received_avg = damage_received.get("avg", 0.0)
+
         # Objectives (game-level)
         objectives = game.get("objectives", []) or []
         plant_avg = _extract_objective_avg(objectives, "plantBomb")
