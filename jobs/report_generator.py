@@ -40,7 +40,9 @@ _logger = get_logger(__name__)
 
 
 def _payload_key(raw_key: str) -> str:
-    normalized = re.sub(r"[^a-z0-9_]+", "_", str(raw_key or "payload").lower()).strip("_")
+    normalized = re.sub(r"[^a-z0-9_]+", "_", str(raw_key or "payload").lower()).strip(
+        "_"
+    )
     return (normalized or "payload")[:64]
 
 
@@ -54,14 +56,30 @@ def _to_payload_dict(value: Any) -> Dict[str, Any]:
     return {"value": value}
 
 
-def _extract_storage_planes(report_data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
-    explicit_planes = report_data.pop("__storage_planes", {}) if isinstance(report_data, dict) else {}
+def _extract_storage_planes(
+    report_data: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    explicit_planes = (
+        report_data.pop("__storage_planes", {}) if isinstance(report_data, dict) else {}
+    )
     if not isinstance(explicit_planes, dict):
         explicit_planes = {}
 
-    raw_plane = explicit_planes.get("raw") if isinstance(explicit_planes.get("raw"), dict) else {}
-    normalized_plane = explicit_planes.get("normalized") if isinstance(explicit_planes.get("normalized"), dict) else {}
-    feature_plane = explicit_planes.get("features") if isinstance(explicit_planes.get("features"), dict) else {}
+    raw_plane = (
+        explicit_planes.get("raw")
+        if isinstance(explicit_planes.get("raw"), dict)
+        else {}
+    )
+    normalized_plane = (
+        explicit_planes.get("normalized")
+        if isinstance(explicit_planes.get("normalized"), dict)
+        else {}
+    )
+    feature_plane = (
+        explicit_planes.get("features")
+        if isinstance(explicit_planes.get("features"), dict)
+        else {}
+    )
 
     if not normalized_plane:
         normalized_plane = {
@@ -87,7 +105,9 @@ def _extract_storage_planes(report_data: Dict[str, Any]) -> Tuple[Dict[str, Any]
             "macro_analysis": _to_payload_dict(report_data.get("macro_analysis")),
             "mid_game_analysis": _to_payload_dict(report_data.get("mid_game_analysis")),
             "micro_analysis": _to_payload_dict(report_data.get("micro_analysis")),
-            "actionable_insights": _to_payload_dict(report_data.get("actionable_insights")),
+            "actionable_insights": _to_payload_dict(
+                report_data.get("actionable_insights")
+            ),
             "report_specific": _to_payload_dict(report_data.get("report_specific")),
         }
 
@@ -120,8 +140,16 @@ def _persist_storage_planes(
             source_stage="FEATURIZING",
         )
 
-    metadata = report_data.get("metadata") if isinstance(report_data.get("metadata"), dict) else {}
-    feature_version = feature_bundle.feature_version if feature_bundle else metadata.get("feature_version", "features-v1")
+    metadata = (
+        report_data.get("metadata")
+        if isinstance(report_data.get("metadata"), dict)
+        else {}
+    )
+    feature_version = (
+        feature_bundle.feature_version
+        if feature_bundle
+        else metadata.get("feature_version", "features-v1")
+    )
 
     for key, payload in feature_plane.items():
         upsert_feature_payload(
@@ -133,7 +161,9 @@ def _persist_storage_planes(
         )
 
 
-def validate_feature_registry_compatibility(registry_version: str, expected_version: str) -> None:
+def validate_feature_registry_compatibility(
+    registry_version: str, expected_version: str
+) -> None:
     if registry_version != expected_version:
         raise RuntimeError(
             f"Feature registry version mismatch: registry={registry_version}, expected={expected_version}"
@@ -146,13 +176,27 @@ def classify_worker_error(error_message: str) -> Tuple[str, bool]:
     """
     normalized = (error_message or "").lower()
 
-    if any(k in normalized for k in ["timed out", "timeout", "rate limit", "unavailable", "connection reset"]):
+    if any(
+        k in normalized
+        for k in [
+            "timed out",
+            "timeout",
+            "rate limit",
+            "unavailable",
+            "connection reset",
+        ]
+    ):
         return "RETRYABLE_PROVIDER", True
 
-    if any(k in normalized for k in ["database", "deadlock", "connection refused", "connection pool"]):
+    if any(
+        k in normalized
+        for k in ["database", "deadlock", "connection refused", "connection pool"]
+    ):
         return "RETRYABLE_INFRA", True
 
-    if any(k in normalized for k in ["validation", "schema", "fieldundefined", "contract"]):
+    if any(
+        k in normalized for k in ["validation", "schema", "fieldundefined", "contract"]
+    ):
         return "NON_RETRYABLE_CONTRACT", False
 
     if any(k in normalized for k in ["forbidden", "unauthorized", "auth"]):
@@ -164,7 +208,9 @@ def classify_worker_error(error_message: str) -> Tuple[str, bool]:
     return "NON_RETRYABLE_DATA", False
 
 
-async def _run_job_pipeline(job_id: int, request_id: int, user_prompt: str, router: GeneralPromptRouter) -> None:
+async def _run_job_pipeline(
+    job_id: int, request_id: int, user_prompt: str, router: GeneralPromptRouter
+) -> None:
     update_report_job_stage(job_id, "FEATURIZING")
     _logger.info(f"Routing prompt through LLM for request {request_id}...")
     result = await router.resolve_user_prompt(user_prompt)
@@ -190,10 +236,14 @@ async def _run_job_pipeline(job_id: int, request_id: int, user_prompt: str, rout
         raise ValueError(str(report_data["error"]))
 
     feature_bundle = DEFAULT_FEATURE_REGISTRY.build(report_data)
-    validate_pre_persist_contract(report_data=report_data, feature_bundle=feature_bundle)
+    validate_pre_persist_contract(
+        report_data=report_data, feature_bundle=feature_bundle
+    )
     _persist_storage_planes(request_id, report_data, feature_bundle=feature_bundle)
 
-    full_context = DEFAULT_FEATURE_REGISTRY.build_synthesis_context(report_data, feature_bundle)
+    full_context = DEFAULT_FEATURE_REGISTRY.build_synthesis_context(
+        report_data, feature_bundle
+    )
 
     update_report_job_stage(job_id, "SYNTHESIZING")
     from transforms.insight_generator import generate_90_5_60_report
@@ -212,7 +262,9 @@ async def _run_job_pipeline(job_id: int, request_id: int, user_prompt: str, rout
     finalize_report(request_id, report_data)
 
 
-async def _process_claimed_job(job: Dict[str, Any], router: GeneralPromptRouter) -> None:
+async def _process_claimed_job(
+    job: Dict[str, Any], router: GeneralPromptRouter
+) -> None:
     job_id = job["job_id"]
     request_id = job["report_request_id"]
     user_prompt = job["user_prompt"]
@@ -237,7 +289,9 @@ async def _process_claimed_job(job: Dict[str, Any], router: GeneralPromptRouter)
     except Exception as handler_error:
         error_msg = str(handler_error)
         code, retryable = classify_worker_error(error_msg)
-        _logger.error(f"Job {job_id} failed for request {request_id}: [{code}] {error_msg}")
+        _logger.error(
+            f"Job {job_id} failed for request {request_id}: [{code}] {error_msg}"
+        )
 
         fail_result = fail_report_job(
             job_id=job_id,
@@ -256,10 +310,14 @@ async def _process_claimed_job(job: Dict[str, Any], router: GeneralPromptRouter)
             update_report_request_status(request_id, "FAILED", error_message=error_msg)
 
 
-async def process_next_job_once(runtime_worker_id: str, router: GeneralPromptRouter) -> bool:
+async def process_next_job_once(
+    runtime_worker_id: str, router: GeneralPromptRouter
+) -> bool:
     backfilled = ensure_pending_jobs_backfilled(limit=20)
     if backfilled:
-        _logger.info(f"Backfilled {backfilled} report_jobs from legacy pending requests")
+        _logger.info(
+            f"Backfilled {backfilled} report_jobs from legacy pending requests"
+        )
 
     job = claim_next_report_job(runtime_worker_id)
     if not job:
@@ -282,18 +340,22 @@ async def poll_and_process_reports() -> None:
       - report composition from feature bundle + synthesis output
     """
     runtime_worker_id = f"{WORKER_ID}-{socket.gethostname()}-{os.getpid()}"
-    _logger.info(f"🚀 Starting Stratigen AI Analysis Worker (orchestration mode) worker_id={runtime_worker_id}")
+    _logger.info(
+        f"Starting Stratigen AI Analysis Worker (orchestration mode) worker_id={runtime_worker_id}"
+    )
     router = GeneralPromptRouter()
 
     while True:
         try:
-            processed = await process_next_job_once(runtime_worker_id=runtime_worker_id, router=router)
+            processed = await process_next_job_once(
+                runtime_worker_id=runtime_worker_id, router=router
+            )
             if not processed:
                 _logger.debug("No runnable report jobs, sleeping...")
             await asyncio.sleep(POLL_TIME_IN_SECONDS)
 
         except Exception as ex:
-            _logger.error(f"💥 Error in orchestration loop: {ex}", exc_info=True)
+            _logger.error(f"Error in orchestration loop: {ex}", exc_info=True)
             await asyncio.sleep(10)
 
 
@@ -312,7 +374,7 @@ def start_worker():
         time.sleep(5)
         _logger.info("Worker Shutdown Complete")
     except Exception as e:
-        _logger.error(f"💀 Worker crashed: {e}", exc_info=True)
+        _logger.error(f"Worker crashed: {e}", exc_info=True)
         raise
 
 
@@ -320,7 +382,9 @@ def execute_report_workflow(request_id, team_id, time_window: str) -> Dict[str, 
     """
     Placeholder for future explicit stage-level execution orchestration.
     """
-    raise NotImplementedError("execute_report_workflow is not used in phase-2 orchestration path")
+    raise NotImplementedError(
+        "execute_report_workflow is not used in phase-2 orchestration path"
+    )
 
 
 def finalize_report(request_id, report_data):
@@ -352,7 +416,9 @@ def finalize_report(request_id, report_data):
 
         if is_standard_report:
             allowed_fields = ScoutingReport.model_fields.keys()
-            filtered_data = {k: v for k, v in report_data.items() if k in allowed_fields}
+            filtered_data = {
+                k: v for k, v in report_data.items() if k in allowed_fields
+            }
             filtered_data["report_request_id"] = request_id
 
             report = ScoutingReport(**filtered_data)
@@ -371,9 +437,17 @@ def finalize_report(request_id, report_data):
         report_payload_for_plane = report_data
         upsert_scouting_report(report_data)
 
-    model_version = metadata.get("model_version") if isinstance(metadata, dict) else None
-    feature_version = metadata.get("feature_version") if isinstance(metadata, dict) else None
-    contract_version = metadata.get("contract_version") if isinstance(metadata, dict) else REPORT_CONTRACT_VERSION
+    model_version = (
+        metadata.get("model_version") if isinstance(metadata, dict) else None
+    )
+    feature_version = (
+        metadata.get("feature_version") if isinstance(metadata, dict) else None
+    )
+    contract_version = (
+        metadata.get("contract_version")
+        if isinstance(metadata, dict)
+        else REPORT_CONTRACT_VERSION
+    )
 
     upsert_report_artifact(
         report_request_id=request_id,

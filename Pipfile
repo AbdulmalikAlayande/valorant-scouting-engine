@@ -11,8 +11,8 @@ dj-database-url = "*"
 environs = "*"
 pydantic = "*"
 google-genai = "*"
-pydantic-ai = "*"
 matplotlib = "*"
+pydantic-ai = "*"
 
 [dev-packages]
 
